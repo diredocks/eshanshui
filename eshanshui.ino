@@ -1,44 +1,44 @@
 #include <GxEPD2_BW.h>
 #include <esp_system.h>
-#include "src/shanshui/shanshui.h" // src/ 下源码会被递归编译（lib/ 不会）。
 
-#define EPD_CS 5
-#define EPD_DC 17
-#define EPD_RST 16
-#define EPD_BUSY 4
+#include "src/shanshui/shanshui.h"
 
-GxEPD2_BW<GxEPD2_420_M01, GxEPD2_420_M01::HEIGHT>
-  display(GxEPD2_420_M01(EPD_CS, EPD_DC, EPD_RST, EPD_BUSY));
+namespace {
 
-// 无 PSRAM：分带渲染，整幅 gray 堆不上，按带重放场景（慢约 ×带数），
-// dither 误差跨带延续，输出与整幅 generate() 逐位一致。
-static uint8_t s_bits[SHANSHUI_BITS_SIZE];
-static uint8_t s_grayBand[SHANSHUI_BAND_SIZE];
-static uint32_t s_seed;
+constexpr uint8_t kEpdCs = 5;
+constexpr uint8_t kEpdDc = 17;
+constexpr uint8_t kEpdRst = 16;
+constexpr uint8_t kEpdBusy = 4;
+constexpr uint32_t kGenTaskStack = 24576;
+constexpr uint32_t kSeedFallback = 0x9E3779B9u;
 
-// render 调用链栈峰值约 10KB，loopTask 默认 8KB 不够，独立任务给 24KB 跑完即删。
-static volatile bool s_genDone = false;
+GxEPD2_BW<GxEPD2_420_M01, GxEPD2_420_M01::HEIGHT> display(
+    GxEPD2_420_M01(kEpdCs, kEpdDc, kEpdRst, kEpdBusy));
 
-static void genTaskFn(void* arg) {
-  (void)arg;
+uint8_t s_bits[SHANSHUI_BITS_SIZE];
+uint8_t s_grayBand[SHANSHUI_BAND_SIZE];
+uint32_t s_seed;
+volatile bool s_genDone = false;
+
+void generateScene(void*) {
   shanshui::generateBanded(s_seed, s_grayBand, SHANSHUI_BAND_H, s_bits,
                            shanshui::DITHER_FLOYD);
   s_genDone = true;
-  vTaskDelete(NULL);
+  vTaskDelete(nullptr);
 }
 
-void setup() {
-  Serial.begin(115200);
-
+void generateBitmap() {
   s_seed = esp_random();
-  if (s_seed == 0) s_seed = 0x9E3779B9u;
+  if (s_seed == 0) s_seed = kSeedFallback;
 
   uint32_t t0 = millis();
-  xTaskCreate(genTaskFn, "shanshui_gen", 24576, NULL, 1, NULL);
-  while (!s_genDone) delay(10); // 喂看门狗。
+  xTaskCreate(generateScene, "shanshui_gen", kGenTaskStack, nullptr, 1, nullptr);
+  while (!s_genDone) delay(10);
   Serial.printf("generate done: seed=%u algo=floyd %lums\n", s_seed,
                 (unsigned long)(millis() - t0));
+}
 
+void refreshDisplay() {
   display.init(115200);
   display.setRotation(0);
   Serial.println("display initialized");
@@ -52,6 +52,14 @@ void setup() {
   } while (display.nextPage());
   Serial.println("epd refresh done");
   display.hibernate();
+}
+
+}  // namespace
+
+void setup() {
+  Serial.begin(115200);
+  generateBitmap();
+  refreshDisplay();
 }
 
 void loop() {}
