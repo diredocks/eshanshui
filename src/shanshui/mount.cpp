@@ -3,7 +3,7 @@
 
 namespace shanshui {
 
-static const float PI PROGMEM = 3.14159265f;
+static const float PI = 3.14159265f;
 
 // 网格放 BSS（mountain 10×50，rock 10×50，flat 5×50，无重入调用，安全）。
 static Pt s_mgrid[SHANSHUI_MOUNT_I * SHANSHUI_MOUNT_J];
@@ -24,7 +24,7 @@ void Mount::foot(const Pt* grid, int I, int J, float xof, float yof) {
   int i = 0, ni = 0;
   for (i = 0; i < I - 2; i++) {
     if (i != ni) continue;
-    static const int kStep[2] PROGMEM = {1, 2};
+    static const int kStep[2] = {1, 2};
     ni = i + rng_.choice<2>(kStep);
     if (ni > I - 1) ni = I - 1;
     int c0 = 0, c1 = 0;
@@ -106,7 +106,7 @@ void Mount::mountain(float xoff, float yoff, float seed, bool veg) {
   foot(grid, I, J, xoff, yoff);
   TexArgs t;
   t.tex = tex;
-  static const int kShade[5] PROGMEM = {0, 0, 0, 0, 5};
+  static const int kShade[5] = {0, 0, 0, 0, 5};
   t.sha = (float)rng_.choice<5>(kShade);
   brush_.texture(grid, I, J, xoff, yoff, t);
   // 山顶簇树（TOP）。
@@ -167,10 +167,10 @@ void Mount::mountain(float xoff, float yoff, float seed, bool veg) {
     for (int j = 0; j < J; j++) {
       float ns = noise_.noise(i * 0.2f, j * 0.05f, seed + 10);
       if (i != 0 && (j == 1 || j == J - 2) && ns * ns * ns * ns < 0.008f) {
-        static const int kBottArch[6] PROGMEM = {0, 0, 1, 1, 1, 2};
-        static const int kArch02Sto[4] PROGMEM = {1, 2, 2, 3};
-        static const int kArch02Sty[3] PROGMEM = {1, 2, 3};
-        static const int kArch04Sto[5] PROGMEM = {1, 1, 1, 2, 2};
+        static const int kBottArch[6] = {0, 0, 1, 1, 1, 2};
+        static const int kArch02Sto[4] = {1, 2, 2, 3};
+        static const int kArch02Sty[3] = {1, 2, 3};
+        static const int kArch04Sto[5] = {1, 1, 1, 2, 2};
         int tt = rng_.choice<6>(kBottArch);
         if (tt == 1)
           arch_.arch02(grid[i * J + j].x + xoff, grid[i * J + j].y + yoff,
@@ -188,7 +188,7 @@ void Mount::mountain(float xoff, float yoff, float seed, bool veg) {
     int dj = j - J / 2;
     if (dj < 0) dj = -dj;
     if (dj < 1 && rng_.next() < 0.02f) {
-      static const int kTopArchSto[2] PROGMEM = {5, 7};
+      static const int kTopArchSto[2] = {5, 7};
       arch_.arch03(grid[1 * J + j].x + xoff, grid[1 * J + j].y + yoff, seed,
                    10, 50, 0.7f, 5, rng_.choice<2>(kTopArchSto));
     }
@@ -324,9 +324,9 @@ void Mount::flatMount(float xoff, float yoff, float seed, float wid, float hei,
 
 void Mount::flatDec(float xoff, float yoff, float xmin, float xmax, float ymin,
                     float ymax) {
-  static const int kFlatKind[6] PROGMEM = {0, 0, 1, 2, 3, 4};
-  static const int kFlatTree[4] PROGMEM = {0, 0, 1, 2};
-  static const int kPineCount[7] PROGMEM = {1, 1, 1, 1, 2, 2, 3};
+  static const int kFlatKind[6] = {0, 0, 1, 2, 3, 4};
+  static const int kFlatTree[4] = {0, 0, 1, 2};
+  static const int kPineCount[7] = {1, 1, 1, 1, 2, 2, 3};
   int tt = rng_.choice<6>(kFlatKind);
   int n = (int)(rng_.next() * 5);
   for (int j = 0; j < n; j++)
@@ -395,7 +395,7 @@ void Mount::flatDec(float xoff, float yoff, float xmin, float xmax, float ymin,
   for (int i = 0; i < n2; i++)
     tree_.tree02(xoff + rng_.range(xmin, xmax), yoff + rng_.range(ymin, ymax),
                  16, 8, 5, 100, 128);
-  static const int kFlatHut[5] PROGMEM = {0, 0, 0, 0, 1};
+  static const int kFlatHut[5] = {0, 0, 0, 0, 1};
   int ts = rng_.choice<5>(kFlatHut);
   if (ts == 1 && tt != 4)
     arch_.arch01(xoff + rng_.range(xmin, xmax), yoff + (ymin + ymax) / 2 + 20,
@@ -405,7 +405,7 @@ void Mount::flatDec(float xoff, float yoff, float xmin, float xmax, float ymin,
 
 void Mount::distMount(float xoff, float yoff, float seed) {
   float hei = 56;
-  static const int kDistLen[3] PROGMEM = {200, 400, 550};
+  static const int kDistLen[3] = {200, 400, 550};
   int len = kDistLen[rng_.nextU(3)];
   const int seg = 5, span = 10;
   int nseg = len / span / seg;

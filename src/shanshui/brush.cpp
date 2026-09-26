@@ -3,7 +3,7 @@
 
 namespace shanshui {
 
-static const float PI PROGMEM = 3.14159265f;
+static const float PI = 3.14159265f;
 
 float wfSin(float x) { return sinf(x * PI); }
 float wfCosHalf(float x) { return cosf(x * PI * 0.5f); }

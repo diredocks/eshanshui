@@ -3,7 +3,7 @@
 
 namespace shanshui {
 
-static const float PI PROGMEM = 3.14159265f;
+static const float PI = 3.14159265f;
 
 void Arch::hut(float xoff, float yoff, float hei, float wid, int tex) {
   const int RI = 10, RJ = 10;
@@ -280,7 +280,7 @@ void Arch::arch01(float xoff, float yoff, float seed, float hei, float wid,
   box(xoff, yoff, hei * (1 - p), wid * 2 / 3, 0.7f, per, true, false, 3, 0);
   rail(xoff, yoff, seed, 10, wid, 0.7f, per * 2, 3 + (int)(rng_.next() * 3),
        1.0f, true, false);
-  static const int kManCount[4] PROGMEM = {0, 1, 1, 2};
+  static const int kManCount[4] = {0, 1, 1, 2};
   int mcnt = rng_.choice<4>(kManCount);
   if (mcnt == 1) {
     man_.man(xoff + rng_.range(-wid / 3, wid / 3), yoff, 0.42f,
@@ -346,7 +346,7 @@ void Arch::boat01(float xoff, float yoff, float seed, float len, float sca,
                   bool fli) {
   (void)seed;
   float dir = fli ? -1.0f : 1.0f;
-  static const float BLEN[9] PROGMEM = {0, 30, 20, 30, 10, 30, 30, 30, 30};
+  static const float BLEN[9] = {0, 30, 20, 30, 10, 30, 30, 30, 30};
   man_.man(xoff + 20 * sca * dir, yoff, 0.5f * sca, !fli, 1, 1, BLEN);
   Pt p1[32], p2[32];
   int c1 = 0, c2 = 0;
@@ -382,7 +382,7 @@ void Arch::tower01(float xoff, float yoff, float hei, float wid) {
   Pt p10 = {-wid * 0.1f, -hei * 0.9f}, p11 = {wid * 0.1f, -hei * 0.9f};
   Pt p20 = {-wid * 0.2f, -hei * 0.5f}, p21 = {wid * 0.2f, -hei * 0.5f};
   Pt p30 = {-wid * 0.5f, 0}, p31 = {wid * 0.5f, 0};
-  static const float BCH[3][2] PROGMEM = {{0.7f, -0.85f}, {1.0f, -0.675f}, {0.7f, -0.5f}};
+  static const float BCH[3][2] = {{0.7f, -0.85f}, {1.0f, -0.675f}, {0.7f, -0.5f}};
   for (int i = 0; i < 3; i++) {
     float bx = BCH[i][0] * wid, by = BCH[i][1] * hei;
     Pt l1[2] = {{-bx, by}, {bx, by}};

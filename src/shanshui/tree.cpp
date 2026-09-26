@@ -3,10 +3,10 @@
 
 namespace shanshui {
 
-static const float PI PROGMEM = 3.14159265f;
+static const float PI = 3.14159265f;
 static const int CH = 8; // choice([-1,1])
 // 正负号二选一（branch 抖动方向 / twig 分叉方向共用，原为两处栈上复合字面量）。
-static const int kSign[2] PROGMEM = {-1, 1};
+static const int kSign[2] = {-1, 1};
 
 float Tree::shape(float x) { return logf(50.0f * x + 1.0f) / 3.95f; }
 

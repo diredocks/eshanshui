@@ -3,7 +3,7 @@
 
 namespace shanshui {
 
-static const float PI PROGMEM = 3.14159265f;
+static const float PI = 3.14159265f;
 
 static float clothW(Man::ClothMode m, float x, float sca) {
   float s = sinf(x * PI);
@@ -80,7 +80,7 @@ void Man::tranpoly(const Pt& p0, const Pt& p1, const float* local, int n,
 }
 
 void Man::hat01(const Pt& p0, const Pt& p1, bool fli) {
-  static const float T[] PROGMEM = {-0.3f, 0.5f, 0.3f, 0.8f, 0.2f, 1.0f, 0.0f, 1.1f,
+  static const float T[] = {-0.3f, 0.5f, 0.3f, 0.8f, 0.2f, 1.0f, 0.0f, 1.1f,
                             -0.3f, 1.15f, -0.55f, 1.0f, -0.65f, 0.5f};
   Pt pl[7];
   tranpoly(p0, p1, T, 7, fli, pl);
@@ -109,7 +109,7 @@ void Man::hat01(const Pt& p0, const Pt& p1, bool fli) {
 }
 
 void Man::hat02(const Pt& p0, const Pt& p1, bool fli) {
-  static const float T[] PROGMEM = {-0.3f, 0.5f, -1.1f, 0.5f, -1.2f, 0.6f, -1.1f, 0.7f,
+  static const float T[] = {-0.3f, 0.5f, -1.1f, 0.5f, -1.2f, 0.6f, -1.1f, 0.7f,
                             -0.3f, 0.8f, 0.3f, 0.8f, 1.0f, 0.7f, 1.3f, 0.6f,
                             1.2f, 0.5f, 0.3f, 0.5f};
   Pt pl[10];
@@ -171,14 +171,14 @@ void Man::cloth(const Pt* plist, int n, ClothMode mode, float sca, float xoff,
 
 void Man::man(float xoff, float yoff, float sca, bool fli, int hat, int ite,
               const float* lenMul) {
-  static const float DEF_LEN[9] PROGMEM = {0, 30, 20, 30, 30, 30, 30, 30, 30};
+  static const float DEF_LEN[9] = {0, 30, 20, 30, 30, 30, 30, 30, 30};
   if (!lenMul) lenMul = DEF_LEN;
   float r1 = rng_.next(), r2 = rng_.next(), r3 = rng_.next();
   float ang[9] = {0, -PI / 2, 0, (PI / 4) * r1, ((PI * 3) / 4) * r2,
                   (PI * 3) / 4, -PI / 4, (-PI * 3) / 4 - (PI / 4) * r3, -PI / 4};
   // 骨骼路径（root=0）：各关节 parent 链。
   // 显式路径求位置。
-  static const uint8_t PATH[9][4] PROGMEM = {
+  static const uint8_t PATH[9][4] = {
       {0, 9, 9, 9}, {0, 1, 9, 9}, {0, 1, 2, 9}, {0, 3, 9, 9}, {0, 3, 4, 9},
       {0, 1, 5, 9}, {0, 1, 5, 6}, {0, 1, 7, 9}, {0, 1, 7, 8},
   };

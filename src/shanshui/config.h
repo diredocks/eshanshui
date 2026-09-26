@@ -3,12 +3,11 @@
 #pragma once
 #include <stdint.h>
 
-// ---- 只读数据放 flash（PROGMEM）----
+// ---- 大只读表放 flash（PROGMEM）----
 // ESP32 上 PROGMEM 为空宏：static const 默认进 .rodata（flash 映射），直接读即可；
 // AVR 上 PROGMEM 为真 flash 段。本库目标为 Arduino/ESP32 + 桌面跨平台，读表一律
 // 直接访问（ESP32/桌面/ESP8266 正确；AVR 不在目标内，不用 pgm_read_* 改写调用方）。
-// 写法统一为 `static const T X[] PROGMEM = {...}`，意图明确且跨核可移植。
-// 注意：用作编译期常量（如数组界 MTX_N）的不加 PROGMEM。
+// 只有较大的只读表（如 COS_LUT）加 PROGMEM；标量常量与小数组用普通 static const。
 #if defined(ARDUINO)
 #include <pgmspace.h>
 #elif !defined(PROGMEM)

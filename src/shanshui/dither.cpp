@@ -6,7 +6,7 @@
 namespace shanshui {
 
 // Bayer4（web Dither.bayer4），阈值 = (b+0.5)*255/16，四舍五入到整数。
-static const uint8_t BAYER_TH[16] PROGMEM = {
+static const uint8_t BAYER_TH[16] = {
   8, 135, 40, 167, 199, 72, 231, 104, 56, 183, 24, 151, 247, 120, 215, 88,
 };
 // 按 (y%4)*4+(x%4) 查表，上表已按该顺序排好：
