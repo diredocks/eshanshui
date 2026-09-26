@@ -1,4 +1,4 @@
-// shanshui/water.h — 水纹（web/js/scene/water.js 的 MCU 版）。
+// shanshui/water.h — 水纹。
 #pragma once
 #include "brush.h"
 

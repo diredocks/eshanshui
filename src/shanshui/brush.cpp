@@ -78,7 +78,7 @@ void loopNoise(float* a, int n) {
 }
 
 float randGaussian(Prng& rng) {
-  // web Tools.wtrand 拒绝采样：y < exp(-24(x-0.5)^2)，再映射到 [-1,1]。
+  // 拒绝采样：y < exp(-24(x-0.5)^2)，再映射到 [-1,1]。
   for (;;) {
     float x = rng.next(), y = rng.next();
     float dx = x - 0.5f;
@@ -108,7 +108,7 @@ void Brush::stroke(const Pt* pts, int n, Ink col, float wid, float noi,
     return;
   }
   float n0 = rng_.next() * 10.0f;
-  // BSS 缓冲：stroke 不递归调用自身，无重入问题。
+  // stroke 不递归调用自身，无重入问题。
   static Pt s_v0[SHANSHUI_STROKE_MAX], s_v1[SHANSHUI_STROKE_MAX];
   static Pt s_vtx[SHANSHUI_STROKE_MAX * 2 + 2];
   Pt* v0 = s_v0;

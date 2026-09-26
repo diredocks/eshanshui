@@ -1,5 +1,4 @@
-// shanshui/shanshui.cpp — 场景组装（web/chunks.js+view.js 的 MCU 版）。
-// 与 web 差异：chunk 按 y 排好序后直接画进帧缓冲，不存 op 表。
+// shanshui/shanshui.cpp — 场景组装。
 #include "shanshui.h"
 #include "arch.h"
 #include "mount.h"
@@ -44,7 +43,7 @@ void seedToStr(uint32_t seed, char* buf) {
   buf[l] = 0;
 }
 
-// 按 web ChunkManager.chunkloader 的三窗口收集并展开为可排序绘制项。
+// 三窗口收集并展开为可排序绘制项。
 int collectItems(Planner& planner, float cursx, Item* items) {
   static Reg s_regs[128];
   int nreg = 0;

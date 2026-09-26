@@ -1,4 +1,4 @@
-// shanshui/raster.h — 灰度软件光栅器（web/raster.js 的 MCU 版）。
+// shanshui/raster.h — 灰度软件光栅器。
 #pragma once
 
 #include "types.h"

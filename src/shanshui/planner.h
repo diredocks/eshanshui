@@ -1,4 +1,4 @@
-// shanshui/planner.h — 场景布局（web/planner.js 的 MCU 版）。
+// shanshui/planner.h — 场景布局。
 #pragma once
 
 #include "noise.h"

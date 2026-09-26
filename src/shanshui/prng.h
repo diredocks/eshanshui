@@ -1,5 +1,4 @@
-// shanshui/prng.h — 确定性种子随机数（header-only，零堆内存）。
-// web 用双精度取模，ESP32 上是软浮点；这里改 mulberry32（32 位整数）。
+// shanshui/prng.h — 确定性种子随机数（header-only）。
 #pragma once
 
 #include <stdint.h>
@@ -12,7 +11,7 @@ class Prng {
 
   void seedUint(uint32_t x) {
     s_ = x ? x : 0x9E3779B9u;
-    for (int i = 0; i < 10; i++) next(); // 与 web 一致：预热丢弃前 10 个。
+    for (int i = 0; i < 10; i++) next(); // 预热丢弃前 10 个。
   }
   // FNV-1a。
   void seedStr(const char* str) {

@@ -1,4 +1,4 @@
-// shanshui/noise.h — Perlin 值噪声（web/noise.js 的 MCU 版）。
+// shanshui/noise.h — Perlin 值噪声。
 #pragma once
 
 #include "config.h"

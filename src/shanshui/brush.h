@@ -1,4 +1,4 @@
-// shanshui/brush.h — 笔触/墨块/细分/皴法（web/brush.js 的 MCU 版）。
+// shanshui/brush.h — 笔触/墨块/细分/皴法。
 #pragma once
 
 #include "noise.h"

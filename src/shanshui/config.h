@@ -2,7 +2,6 @@
 #pragma once
 #include <stdint.h>
 
-// ESP32/桌面下 PROGMEM 为空宏，static const 直接可读；AVR 不在目标内。
 #if defined(ARDUINO)
 #include <pgmspace.h>
 #elif !defined(PROGMEM)
@@ -24,7 +23,7 @@
 #define SHANSHUI_GRAY_SIZE ((SHANSHUI_W) * (SHANSHUI_H))
 #endif
 
-// 分带渲染：无 PSRAM 时整幅 gray 堆不上，改按带重放场景。
+// 分带渲染：按带重放场景。
 #ifndef SHANSHUI_BAND_H
 #define SHANSHUI_BAND_H 50
 #endif
@@ -32,17 +31,17 @@
 #define SHANSHUI_BAND_SIZE ((SHANSHUI_W) * (SHANSHUI_BAND_H))
 #endif
 
-// 世界->像素：px = (world - cursx) * ZOOM（与 web 一致）。
+// 世界->像素：px = (world - cursx) * ZOOM。
 #ifndef SHANSHUI_ZOOM
 #define SHANSHUI_ZOOM 1.142f
 #endif
 
-// 场景分块宽度（与 web 一致）。
+// 场景分块宽度。
 #ifndef SHANSHUI_CWID
 #define SHANSHUI_CWID 512
 #endif
 
-// Perlin 噪声表长（web 为 4096，MCU 太占 RAM）。
+// Perlin 噪声表长。
 #ifndef SHANSHUI_PERLIN_SIZE
 #define SHANSHUI_PERLIN_SIZE 256
 #endif
@@ -53,7 +52,7 @@
 #define SHANSHUI_NOISE_FALLOFF 0.5f
 #endif
 
-// 笔触/多边形静态上限（BSS，无堆分配）。
+// 笔触/多边形静态上限。
 #ifndef SHANSHUI_POLY_MAX
 #define SHANSHUI_POLY_MAX 128
 #endif
@@ -64,7 +63,7 @@
 #define SHANSHUI_BLOB_N 21
 #endif
 
-// 山体网格分辨率（与 web 一致）。
+// 山体网格分辨率。
 #ifndef SHANSHUI_MOUNT_I
 #define SHANSHUI_MOUNT_I 10
 #endif
@@ -78,7 +77,7 @@
 #define SHANSHUI_FLAT_J 50
 #endif
 
-// SHANSHUI_LITE=1 时纹理笔数减半（低内存/求快）。
+// SHANSHUI_LITE=1 时纹理笔数减半。
 #ifdef SHANSHUI_LITE
 #define SHANSHUI_TEX_DIV 2
 #else
@@ -89,7 +88,7 @@
 #ifndef SHANSHUI_DEGAMMA
 #define SHANSHUI_DEGAMMA 0
 #endif
-// SHANSHUI_NOISE_LUT=0 时回到 cosf（与 web 逐位一致）。
+// SHANSHUI_NOISE_LUT=0 时回到 cosf。
 #ifndef SHANSHUI_NOISE_LUT
 #define SHANSHUI_NOISE_LUT 1
 #endif

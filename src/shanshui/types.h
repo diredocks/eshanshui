@@ -11,7 +11,7 @@ namespace shanshui {
 constexpr float kPi = 3.14159265f;
 constexpr float kTau = 6.2831853f;
 
-// 世界/像素坐标点（float，ESP32 单精度 FPU 友好）。
+// 世界/像素坐标点（float）。
 struct Pt {
   float x, y;
 };
@@ -30,7 +30,7 @@ inline Ink ink(uint8_t gray, uint8_t alpha) {
 }
 inline Ink paper() { return ink(255, 255); }
 inline Ink none() { return ink(0, 0); }
-// web 的 `rgba(100,100,100,a)` 映射。
+// `rgba(100,100,100,a)` 映射。
 inline Ink gray100(uint8_t a) { return ink(100, a); }
 
 // 中点。

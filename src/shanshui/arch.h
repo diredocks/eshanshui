@@ -1,4 +1,4 @@
-// shanshui/arch.h — 建筑/船/塔（web/arch.js 的 MCU 版）。
+// shanshui/arch.h — 建筑/船/塔。
 #pragma once
 
 #include "man.h"

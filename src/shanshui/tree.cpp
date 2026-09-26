@@ -127,7 +127,7 @@ void Tree::barkify(float x, float y, const Pt* s0, const Pt* s1, int n) {
       brush_.blob(nx + x, ny + y, 15.0f, 6.0f - fabsf(p - 0.5f) * 10.0f,
                   (a0 + a1) * 0.5f, gray100(153), 1.0f, bfDefault);
     } else {
-      // 树皮短笔（web 内联 bark 闭包）。
+      // 树皮短笔。
       Pt brk[21];
       float len = 10.0f + 10.0f * rng_.next();
       float n0 = rng_.next() * 10.0f;
@@ -364,7 +364,7 @@ void Tree::frac06(float xoff, float yoff, int dep, float hei, float wid,
 
 void Tree::tree06(float x, float y, float hei, float wid, uint8_t gray,
                   uint8_t alpha) {
-  frac06(x, y, 2, hei, wid, -kPi / 2, 0.0f); // 深 2（原 3，MCU 省栈）。
+  frac06(x, y, 2, hei, wid, -kPi / 2, 0.0f); // 深 2。
   // 主干边缘线（近似：竖向描边）。
   Pt e[8] = {{x, y}, {x, y - hei * 0.5f}, {x, y - hei}};
   uint8_t ea = 102 + (uint8_t)(rng_.next() * 26);

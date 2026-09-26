@@ -1,4 +1,4 @@
-// shanshui/tree.h — 树（web/tree.js 的 MCU 版）。
+// shanshui/tree.h — 树。
 #pragma once
 
 #include "brush.h"

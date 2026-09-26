@@ -27,7 +27,7 @@ void Water::water(float xoff, float yoff, float seed) {
         c = 1;
       }
     }
-    if (i > 0 && c >= 2) { // web 跳过第 0 簇。
+    if (i > 0 && c >= 2) { // 跳过第 0 簇。
       uint8_t a = 77 + (uint8_t)(rng_.next() * 77);
       brush_.stroke(row, c, gray100(a), 1.0f, 0.5f, 1.0f, wfSin);
     }

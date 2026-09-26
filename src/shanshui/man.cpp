@@ -46,7 +46,7 @@ int Man::expand(const Pt* pts, int n, ClothMode mode, float sca, Pt* o0,
   float a0 = atan2f(pts[1].y - pts[0].y, pts[1].x - pts[0].x) - kPi / 2;
   float a1 = atan2f(pts[l].y - pts[l - 1].y, pts[l].x - pts[l - 1].x) - kPi / 2;
   float w0 = clothW(mode, 0, sca), w1 = clothW(mode, 1, sca);
-  // 端帽（web 在首尾 unshift/push，与 brush.stroke 不同）。
+  // 端帽。
   // 为保持缓冲顺序简单：端点直接拼接到输出头尾。
   Pt h0 = {pts[0].x + w0 * cosf(a0), pts[0].y + w0 * sinf(a0)};
   Pt h1 = {pts[0].x - w0 * cosf(a0), pts[0].y - w0 * sinf(a0)};

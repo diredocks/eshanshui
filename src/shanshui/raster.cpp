@@ -3,7 +3,7 @@
 
 namespace shanshui {
 
-// 大临时数组放 BSS（非可重入，单线程渲染，省栈）。
+// 单线程渲染。
 static float s_px[SHANSHUI_POLY_MAX];
 static float s_py[SHANSHUI_POLY_MAX];
 static float s_xi[SHANSHUI_POLY_MAX];

@@ -78,7 +78,7 @@ static void ditherOrdered(const uint8_t* gray, uint8_t* bits, DitherAlgo algo) {
   ditherOrderedBand(gray, bits, 0, SHANSHUI_H, algo);
 }
 
-// 行缓冲放 BSS。s_e1/s_e2 为扩散误差状态：整幅每次复位；分带时
+// s_e1/s_e2 为扩散误差状态：整幅每次复位；分带时
 // ditherBegin() 复位一次后带间保持，误差完整延续。
 static int16_t s_row[SHANSHUI_W];
 static int16_t s_e1[SHANSHUI_W];

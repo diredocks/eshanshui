@@ -3,11 +3,10 @@
 
 namespace shanshui {
 
-// 网格放 BSS（无重入调用）。
 static Pt s_mgrid[SHANSHUI_MOUNT_I * SHANSHUI_MOUNT_J];
 static Pt s_rgrid[SHANSHUI_MOUNT_I * SHANSHUI_MOUNT_J];
 static Pt s_fgrid[SHANSHUI_FLAT_I * SHANSHUI_FLAT_J];
-// 山腰候选点（web 为动态数组，这里定长 256）。
+// 山腰候选点（定长 256）。
 static Pt s_cand[256];
 
 static inline uint8_t aOf(float a01) {
@@ -445,7 +444,6 @@ void Mount::distMount(float xoff, float yoff, float seed) {
       top[j].y = yoff - hei * noise_.noise(k * 0.05f, seed) * sqrtf(s);
     }
     // 底边按段宽均分（j*seg/2），与相邻段共端点，避免楔形裂缝。
-    // （web 原样 j*2 在 seg=5 时末段短一步，靠同色三角描边 bleed 掩盖。）
     for (int j = 0; j <= seg / 2; j++) {
       float k = i * seg + j * (seg / 2.0f);
       float s = sinf(kPi * k / (len / span));
@@ -460,7 +458,7 @@ void Mount::distMount(float xoff, float yoff, float seed) {
     float mx = top[seg].x, my = top[seg].y;
     uint8_t g = (uint8_t)(noise_.noise(mx * 0.02f, my * 0.02f, yoff) * 55 + 200);
     Ink fillc = ink(g, 255);
-    ras_.poly(pg, c, fillc, fillc, 1.0f); // 同色描边：接缝 bleed（web 三角同色描边等价）
+    ras_.poly(pg, c, fillc, fillc, 1.0f); // 同色描边：接缝 bleed
     // 顶部皴笔（代替 triangulate 明暗）。
     brush_.stroke(top, seg + 1, ink(g > 40 ? g - 40 : 0, 102), 1.0f, 0.5f,
                   1.0f, wfSin);

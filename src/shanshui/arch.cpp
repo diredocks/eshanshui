@@ -164,7 +164,7 @@ void Arch::rail(float xoff, float yoff, float seed, float hei, float wid,
   }
 #undef RL
   if (tra) {
-    // 透视开口：web 会随机剪短两条线；MCU 版保持闭合（省分支，视觉无差）。
+    // 透视开口：保持闭合（省分支，视觉无差）。
     (void)0;
   }
   for (int i = 0; i < pc / 2; i++) {

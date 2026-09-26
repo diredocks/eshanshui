@@ -10,7 +10,7 @@
 
 namespace shanshui {
 
-// cursx 为水平视窗，默认 0 与 web 首屏一致。
+// cursx 为水平视窗，默认 0。
 void renderGray(uint32_t seed, uint8_t* gray, float cursx = 0);
 void renderGrayStr(const char* seed, uint8_t* gray, float cursx = 0);
 // 只画全局行 y0..y0+h-1 到 grayBand。

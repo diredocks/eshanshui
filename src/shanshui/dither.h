@@ -1,4 +1,4 @@
-// shanshui/dither.h — 1-bit 抖动（web/dither.js 的 MCU 版）。
+// shanshui/dither.h — 1-bit 抖动。
 // 输入 gray[W*H]（0=黑..255=白），输出 bits[W*H/8]（bit=1=白，MSB 先行）。
 #pragma once
 

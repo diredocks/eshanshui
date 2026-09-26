@@ -1,4 +1,4 @@
-// shanshui/mount.h — 山/石（web/mount.js 的 MCU 版）。
+// shanshui/mount.h — 山/石。
 #pragma once
 
 #include "arch.h"
@@ -17,7 +17,7 @@ class Mount {
         tree_(tree),
         arch_(arch) {}
 
-  // 主峰（hei/wid/tex 内部按 web 默认随机；veg 是否生植被/建筑）。
+  // 主峰（hei/wid/tex 内部随机；veg 是否生植被/建筑）。
   void mountain(float xoff, float yoff, float seed, bool veg = true);
   // 坡岸平山。
   void flatMount(float xoff, float yoff, float seed, float wid, float hei,

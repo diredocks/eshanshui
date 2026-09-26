@@ -1,4 +1,4 @@
-// shanshui/man.h — 人物（web/man.js 的 MCU 版）。
+// shanshui/man.h — 人物。
 #pragma once
 
 #include "brush.h"
