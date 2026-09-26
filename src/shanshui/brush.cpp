@@ -21,16 +21,20 @@ float wfFalloff(float x) { return -1.0f / powf(x + 1.0f, 5.0f) + 1.0f; }
 // 这里保持 web 公式（sca 由调用方在外部乘，见 man.cpp 的 cloth）。
 
 float bfDefault(float x) {
-  if (x <= 1) return powf(sinf(x * PI) > 0 ? sinf(x * PI) : 0.0001f, 0.5f);
-  return -powf(sinf((x + 1) * PI) > 0 ? sinf((x + 1) * PI) : 0.0f, 0.5f);
+  if (x <= 1) {
+    float s = sinf(x * PI);
+    return sqrtf(s > 0 ? s : 0.0001f);
+  }
+  float s = sinf((x + 1) * PI);
+  return -sqrtf(s > 0 ? s : 0.0f);
 }
 float bfLeaf(float x) {
   if (x <= 1) {
     float s = sinf(x * PI) * x;
-    return powf(s > 0 ? s : 0.0001f, 0.5f);
+    return sqrtf(s > 0 ? s : 0.0001f);
   }
   float s = sinf((x - 2) * PI * (x - 2));
-  return -powf(s > 0 ? s : 0.0f, 0.5f);
+  return -sqrtf(s > 0 ? s : 0.0f);
 }
 float bfPine(float x) {
   if (x <= 1) return 2.75f * x * powf(1 - x > 0 ? 1 - x : 0.0001f, 1.0f / 1.8f);

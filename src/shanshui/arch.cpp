@@ -352,11 +352,14 @@ void Arch::boat01(float xoff, float yoff, float seed, float len, float sca,
   int c1 = 0, c2 = 0;
   for (float i = 0; i < len * sca && c1 < 32; i += 5 * sca) {
     float f = i / len;
+    float s = sinf(f * PI);
+    if (s <= 0) s = 0.0001f;
+    float sq = sqrtf(s);
     p1[c1].x = i * dir + xoff;
-    p1[c1].y = powf(sinf(f * PI) > 0 ? sinf(f * PI) : 0.0001f, 0.5f) * 7 * sca + yoff;
+    p1[c1].y = sq * 7 * sca + yoff;
     c1++;
     p2[c2].x = i * dir + xoff;
-    p2[c2].y = powf(sinf(f * PI) > 0 ? sinf(f * PI) : 0.0001f, 0.5f) * 10 * sca + yoff;
+    p2[c2].y = sq * 10 * sca + yoff;
     c2++;
   }
   Pt hull[64];

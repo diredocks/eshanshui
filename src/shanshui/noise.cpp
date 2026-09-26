@@ -1,13 +1,29 @@
 #include "noise.h"
+#if SHANSHUI_NOISE_LUT
+#include "noise_lut.h"
+#endif
 #include <math.h>
 
 namespace shanshui {
 
 // p5 的 Y/Z wrap 常量沿用（4/8），表掩码换成 SHANSHUI_PERLIN_SIZE-1。
 // 要求 SHANSHUI_PERLIN_SIZE 为 2 的幂（默认 256）。
+#if SHANSHUI_NOISE_LUT
+// 淡入曲线 0.5*(1-cos(pi*i)) 改为查 COS_LUT（257 项 + 线性插值，误差 <1e-5），
+// 热路径不再调 cosf。i 由 xi/yf/zf 归约到 [0,1)，故 k in [0,256]。
+static inline float scaledCosine(float i) {
+  float u = i * 256.0f;
+  int k = (int)u;
+  if (k >= 256) return COS_LUT[256];
+  float f = u - (float)k;
+  float a = COS_LUT[k], b = COS_LUT[k + 1];
+  return a + (b - a) * f;
+}
+#else
 static inline float scaledCosine(float i) {
   return 0.5f * (1.0f - cosf(i * 3.14159265f));
 }
+#endif
 
 void Noise::ensure() {
   if (ready_) return;
@@ -27,6 +43,43 @@ float Noise::noise(float x, float y, float z) {
   int xi = (int)floorf(x), yi = (int)floorf(y), zi = (int)floorf(z);
   float xf = x - (float)xi, yf = y - (float)yi, zf = z - (float)zi;
   float r = 0.0f, ampl = 0.5f;
+
+  // z==0 时 scaledCosine(zf)==0，整段 Z 层插值被 0 乘掉；y==0 同理。
+  // 精简路径跳过这些分支，输出与原式逐位一致（已本地验证）。
+  if (z == 0.0f && y == 0.0f) {
+    for (int o = 0; o < octaves_; o++) {
+      int of = xi;
+      float rxf = scaledCosine(xf);
+      float n1 = at(of);
+      n1 += rxf * (at(of + 1) - n1);
+      r += n1 * ampl;
+      ampl *= falloff_;
+      xi <<= 1;
+      xf *= 2.0f;
+      if (xf >= 1.0f) { xi++; xf -= 1.0f; }
+    }
+    return r;
+  }
+  if (z == 0.0f) {
+    for (int o = 0; o < octaves_; o++) {
+      int of = xi + (yi << YWRAPB);
+      float rxf = scaledCosine(xf), ryf = scaledCosine(yf);
+      float n1 = at(of);
+      n1 += rxf * (at(of + 1) - n1);
+      float n2 = at(of + YWRAP);
+      n2 += rxf * (at(of + YWRAP + 1) - n2);
+      n1 += ryf * (n2 - n1);
+      r += n1 * ampl;
+      ampl *= falloff_;
+      xi <<= 1;
+      xf *= 2.0f;
+      yi <<= 1;
+      yf *= 2.0f;
+      if (xf >= 1.0f) { xi++; xf -= 1.0f; }
+      if (yf >= 1.0f) { yi++; yf -= 1.0f; }
+    }
+    return r;
+  }
   for (int o = 0; o < octaves_; o++) {
     int of = xi + (yi << YWRAPB) + (zi << ZWRAPB);
     float rxf = scaledCosine(xf), ryf = scaledCosine(yf);

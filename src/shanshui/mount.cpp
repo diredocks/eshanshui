@@ -451,8 +451,8 @@ void Mount::rock(float xoff, float yoff, float seed, float wid, float hei,
     loopNoise(ns, J);
     for (int j = 0; j < J; j++) {
       float a = ((float)j / J) * PI * 2 - PI / 2;
-      float l = (wid * hei) /
-                sqrtf(powf(hei * cosf(a), 2) + powf(wid * sinf(a), 2));
+      float hc = hei * cosf(a), ws = wid * sinf(a);
+      float l = (wid * hei) / sqrtf(hc * hc + ws * ws);
       l *= 0.7f + 0.3f * ns[j];
       float p = 1 - (float)i / I;
       float nx = cosf(a) * l * p;

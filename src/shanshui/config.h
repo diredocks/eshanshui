@@ -98,6 +98,11 @@
 #ifndef SHANSHUI_DEGAMMA
 #define SHANSHUI_DEGAMMA 0
 #endif
+// 噪声淡入曲线用 COS_LUT（257 项查表）替代 cosf：热路径省掉 cosf，误差 <1e-5。
+// 需要与 web 逐位一致时 -DSHANSHUI_NOISE_LUT=0 关闭（回到 0.5*(1-cos)）。
+#ifndef SHANSHUI_NOISE_LUT
+#define SHANSHUI_NOISE_LUT 1
+#endif
 // Gamma 指数（sRGB 近似，精确分段公式可用 2.2 等价代替，误差 < 1 LSB）。
 #ifndef SHANSHUI_GAMMA
 #define SHANSHUI_GAMMA 2.2f
