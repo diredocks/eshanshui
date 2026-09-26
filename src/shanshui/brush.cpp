@@ -3,37 +3,27 @@
 
 namespace shanshui {
 
-static const float PI = 3.14159265f;
-
-float wfSin(float x) { return sinf(x * PI); }
-float wfCosHalf(float x) { return cosf(x * PI * 0.5f); }
+float wfSin(float x) { return sinf(x * kPi); }
+float wfCosHalf(float x) { return cosf(x * kPi * 0.5f); }
 float wfOne(float x) { (void)x; return 1.0f; }
 float wfSin1(float x) { (void)x; return 0.84147098f; }
-float wfSin3(float x) { return sinf(x * 3.0f * PI); }
-float wfSleeve(float x) {
-  return 8.0f * (sinf(0.5f * x * PI) * powf(sinf(x * PI) > 0 ? sinf(x * PI) : 0.0001f, 0.1f) + (1 - x) * 0.4f);
-}
-float wfBody(float x) {
-  return 11.0f * (sinf(0.5f * x * PI) * powf(sinf(x * PI) > 0 ? sinf(x * PI) : 0.0001f, 0.1f) + (1 - x) * 0.5f);
-}
+float wfSin3(float x) { return sinf(x * 3.0f * kPi); }
 float wfFalloff(float x) { return -1.0f / powf(x + 1.0f, 5.0f) + 1.0f; }
-// 人物衣物宽度需乘 sca：调用方把 sca 折进 wid？原 fbody 自带 11*sca 缩放。
-// 这里保持 web 公式（sca 由调用方在外部乘，见 man.cpp 的 cloth）。
 
 float bfDefault(float x) {
   if (x <= 1) {
-    float s = sinf(x * PI);
+    float s = sinf(x * kPi);
     return sqrtf(s > 0 ? s : 0.0001f);
   }
-  float s = sinf((x + 1) * PI);
+  float s = sinf((x + 1) * kPi);
   return -sqrtf(s > 0 ? s : 0.0f);
 }
 float bfLeaf(float x) {
   if (x <= 1) {
-    float s = sinf(x * PI) * x;
+    float s = sinf(x * kPi) * x;
     return sqrtf(s > 0 ? s : 0.0001f);
   }
-  float s = sinf((x - 2) * PI * (x - 2));
+  float s = sinf((x - 2) * kPi * (x - 2));
   return -sqrtf(s > 0 ? s : 0.0f);
 }
 float bfPine(float x) {
@@ -46,7 +36,7 @@ int bezmh(const Pt* P, int n, float w, Pt* out, int maxOut) {
   Pt tmp[8];
   const Pt* p = P;
   int m = n;
-  if (n == 2) { // 两点 -> 补中点成三点。
+  if (n == 2) {
     tmp[0] = P[0];
     tmp[1] = midPt(P[0], P[1]);
     tmp[2] = P[1];
@@ -100,11 +90,11 @@ void Brush::stroke(const Pt* pts, int n, Ink col, float wid, float noi,
                    float out, WFun fun) {
   if (!pts || n == 0 || col.alpha == 0) return;
   if (!fun) fun = wfSin;
-  if (n == 1) { // 单点退化为小墨块。
+  if (n == 1) {
     blob(pts[0].x, pts[0].y, wid * 2, wid * 2, 0, col, 0);
     return;
   }
-  if (n == 2) { // 两点：细线多边形。
+  if (n == 2) {
     float dx = pts[1].x - pts[0].x, dy = pts[1].y - pts[0].y;
     float len = sqrtf(dx * dx + dy * dy);
     if (len < 1e-6f) return;
@@ -118,7 +108,7 @@ void Brush::stroke(const Pt* pts, int n, Ink col, float wid, float noi,
     return;
   }
   float n0 = rng_.next() * 10.0f;
-  // 轮廓缓冲放 BSS（stroke 内部不再递归调 stroke，无重入问题）。
+  // BSS 缓冲：stroke 不递归调用自身，无重入问题。
   static Pt s_v0[SHANSHUI_STROKE_MAX], s_v1[SHANSHUI_STROKE_MAX];
   static Pt s_vtx[SHANSHUI_STROKE_MAX * 2 + 2];
   Pt* v0 = s_v0;
@@ -131,7 +121,7 @@ void Brush::stroke(const Pt* pts, int n, Ink col, float wid, float noi,
     float a1 = atan2f(pts[i].y - pts[i - 1].y, pts[i].x - pts[i - 1].x);
     float a2 = atan2f(pts[i].y - pts[i + 1].y, pts[i].x - pts[i + 1].x);
     float a = (a1 + a2) * 0.5f;
-    if (a < a2) a += PI;
+    if (a < a2) a += kPi;
     float cw = cosf(a) * w, sw = sinf(a) * w;
     if (c0 < SHANSHUI_STROKE_MAX) {
       v0[c0].x = pts[i].x + cw; v0[c0].y = pts[i].y + sw; c0++;
@@ -211,6 +201,26 @@ float Brush::disPick() {
   }
 }
 
+int Brush::texLayer(const Pt* grid, int I, int J, float xof, float yof,
+                    const TexArgs& a, float layer, Pt* line) {
+  int mid = (int)(disPick() * J);
+  int hlen = (int)(rng_.next() * (J * a.len));
+  int s = mid - hlen; if (s < 0) s = 0;
+  int e = mid + hlen; if (e > J) e = J;
+  int fl = (int)layer, ce = fl + 1; if (ce > I - 1) ce = I - 1;
+  float p = layer - fl;
+  float nk = a.noiK >= 0 ? a.noiK : 30.0f / (layer + 1);
+  int c = 0;
+  for (int j = s; j < e && c < SHANSHUI_MOUNT_J; j++) {
+    float gx = grid[fl * J + j].x * p + grid[ce * J + j].x * (1 - p);
+    float gy = grid[fl * J + j].y * p + grid[ce * J + j].y * (1 - p);
+    line[c].x = gx + nk * (noise_.noise(gx, j * 0.5f) - 0.5f) + xof;
+    line[c].y = gy + nk * (noise_.noise(gy, j * 0.5f) - 0.5f) + yof;
+    c++;
+  }
+  return c;
+}
+
 void Brush::texture(const Pt* grid, int I, int J, float xof, float yof,
                     const TexArgs& a) {
   if (!grid || I < 2 || J < 2 || a.tex <= 0) return;
@@ -222,41 +232,13 @@ void Brush::texture(const Pt* grid, int I, int J, float xof, float yof,
   // SHADE 层（淡影）。
   for (int i = 0; i < tex && a.sha > 0; i += step) {
     float layer = (float)i / tex * (I - 1);
-    int mid = (int)(disPick() * J);
-    int hlen = (int)(rng_.next() * (J * a.len));
-    int s = mid - hlen; if (s < 0) s = 0;
-    int e = mid + hlen; if (e > J) e = J;
-    int c = 0;
-    int fl = (int)layer, ce = fl + 1; if (ce > I - 1) ce = I - 1;
-    float p = layer - fl;
-    for (int j = s; j < e && c < SHANSHUI_MOUNT_J; j++) {
-      float gx = grid[fl * J + j].x * p + grid[ce * J + j].x * (1 - p);
-      float gy = grid[fl * J + j].y * p + grid[ce * J + j].y * (1 - p);
-      float nk = a.noiK >= 0 ? a.noiK : 30.0f / (layer + 1);
-      line[c].x = gx + nk * (noise_.noise(gx, j * 0.5f) - 0.5f) + xof;
-      line[c].y = gy + nk * (noise_.noise(gy, j * 0.5f) - 0.5f) + yof;
-      c++;
-    }
-    if (c >= 2) stroke(line, c, ink(100, 26), a.sha, 0.5f, 1.0f, wfSin);
+    int c = texLayer(grid, I, J, xof, yof, a, layer, line);
+    if (c >= 2) stroke(line, c, gray100(26), a.sha, 0.5f, 1.0f, wfSin);
   }
   // TEXTURE 层。
   for (int i = (a.sha > 0 ? 1 : 0); i < tex; i += step) {
     float layer = (float)i / tex * (I - 1);
-    int mid = (int)(disPick() * J);
-    int hlen = (int)(rng_.next() * (J * a.len));
-    int s = mid - hlen; if (s < 0) s = 0;
-    int e = mid + hlen; if (e > J) e = J;
-    int c = 0;
-    int fl = (int)layer, ce = fl + 1; if (ce > I - 1) ce = I - 1;
-    float p = layer - fl;
-    for (int j = s; j < e && c < SHANSHUI_MOUNT_J; j++) {
-      float gx = grid[fl * J + j].x * p + grid[ce * J + j].x * (1 - p);
-      float gy = grid[fl * J + j].y * p + grid[ce * J + j].y * (1 - p);
-      float nk = a.noiK >= 0 ? a.noiK : 30.0f / (layer + 1);
-      line[c].x = gx + nk * (noise_.noise(gx, j * 0.5f) - 0.5f) + xof;
-      line[c].y = gy + nk * (noise_.noise(gy, j * 0.5f) - 0.5f) + yof;
-      c++;
-    }
+    int c = texLayer(grid, I, J, xof, yof, a, layer, line);
     if (c >= 2) {
       uint8_t al = a.a0 + (uint8_t)(rng_.next() * (a.a1 - a.a0));
       stroke(line, c, ink(a.gray, al), a.wid, 0.5f, 1.0f, wfSin);

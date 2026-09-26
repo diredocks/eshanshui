@@ -3,9 +3,6 @@
 
 namespace shanshui {
 
-static const float PI = 3.14159265f;
-static const int CH = 8; // choice([-1,1])
-// 正负号二选一（branch 抖动方向 / twig 分叉方向共用，原为两处栈上复合字面量）。
 static const int kSign[2] = {-1, 1};
 
 float Tree::shape(float x) { return logf(50.0f * x + 1.0f) / 3.95f; }
@@ -44,14 +41,47 @@ int Tree::branch(float hei, float wid, float ang, float ben, float det,
     float woff = (noise_.noise(i * 0.3f) - 0.5f) * wid * hei / 80.0f;
     float b = (p == 0.0f) ? rng_.next() * wid : 0;
     float nw = wid * (((tl - i) / (float)tl) * 0.5f + 0.5f);
-    o0[i].x = qx + cosf(aa + PI / 2) * (nw + woff + b);
-    o0[i].y = qy + sinf(aa + PI / 2) * (nw + woff + b);
-    o1[i].x = qx + cosf(aa - PI / 2) * (nw - woff + b);
-    o1[i].y = qy + sinf(aa - PI / 2) * (nw - woff + b);
+    o0[i].x = qx + cosf(aa + kPi / 2) * (nw + woff + b);
+    o0[i].y = qy + sinf(aa + kPi / 2) * (nw + woff + b);
+    o1[i].x = qx + cosf(aa - kPi / 2) * (nw - woff + b);
+    o1[i].y = qy + sinf(aa - kPi / 2) * (nw - woff + b);
     lx = qx;
     ly = qy;
   }
   return tl;
+}
+
+int Tree::trunkOutline(const Pt* s0, const Pt* s1, int n, float x, float y,
+                       Pt* tr) {
+  int tc = 0;
+  for (int i = 0; i < n && tc < 90; i++) tr[tc++] = s0[i];
+  for (int i = n - 1; i >= 0 && tc < 90; i--) tr[tc++] = s1[i];
+  translate(tr, tc, x, y);
+  return tc;
+}
+
+int Tree::branchOutline(const Pt* b0, const Pt* b1, int bn, float ox, float oy,
+                        Pt* bp) {
+  int bc = 0;
+  for (int k = 1; k < bn && bc < 90; k++) {
+    bp[bc].x = b0[k].x + ox;
+    bp[bc].y = b0[k].y + oy;
+    bc++;
+  }
+  for (int k = bn - 1; k >= 1 && bc < 90; k--) {
+    bp[bc].x = b1[k].x + ox;
+    bp[bc].y = b1[k].y + oy;
+    bc++;
+  }
+  return bc;
+}
+
+void Tree::edgeStroke(const Pt* tr, int begin, int end, uint8_t base) {
+  Pt e[96];
+  int ec = 0;
+  for (int i = begin; i < end && ec < 96; i++) e[ec++] = tr[i];
+  uint8_t ea = base + (uint8_t)(rng_.next() * 26);
+  brush_.stroke(e, ec, gray100(ea), 2.5f, 0.9f, 0.0f, wfSin1);
 }
 
 void Tree::twig(float tx, float ty, int dep, int dir, float sca, float wid,
@@ -59,7 +89,7 @@ void Tree::twig(float tx, float ty, int dep, int dir, float sca, float wid,
   if (dep < 0 || dep > 3) return;
   Pt tw[10];
   float hs = rng_.next() * 0.5f + 0.5f;
-  float a0 = (rng_.next() * PI / 6) * dir + ang;
+  float a0 = (rng_.next() * kPi / 6) * dir + ang;
   for (int i = 0; i < 10; i++) {
     float mx = dir * wfFalloff((float)i / 10) * 50.0f * sca * hs;
     float my = -i * 5.0f * sca;
@@ -78,12 +108,12 @@ void Tree::twig(float tx, float ty, int dep, int dir, float sca, float wid,
                     tw[i].y + (sinf(ang) * dj - leaSz / (dep + 1)) * wid,
                     (15.0f + 12.0f * rng_.next()) * wid,
                     (6.0f + 3.0f * rng_.next()) * wid,
-                    ang * 0.5f + PI / 2 + PI * 0.2f * (rng_.next() - 0.5f),
-                    ink(100, (uint8_t)(128 + dep * 51)), 0.5f, bfLeaf);
+                    ang * 0.5f + kPi / 2 + kPi * 0.2f * (rng_.next() - 0.5f),
+                    gray100((uint8_t)(128 + dep * 51)), 0.5f, bfLeaf);
       }
     }
   }
-  brush_.stroke(tw, 10, ink(100, 128), 1.0f, 0.5f, 1.0f, wfCosHalf);
+  brush_.stroke(tw, 10, gray100(128), 1.0f, 0.5f, 1.0f, wfCosHalf);
 }
 
 void Tree::barkify(float x, float y, const Pt* s0, const Pt* s1, int n) {
@@ -95,7 +125,7 @@ void Tree::barkify(float x, float y, const Pt* s0, const Pt* s1, int n) {
     float ny = s0[i].y * (1 - p) + s1[i].y * p;
     if (rng_.next() < 0.2f) {
       brush_.blob(nx + x, ny + y, 15.0f, 6.0f - fabsf(p - 0.5f) * 10.0f,
-                  (a0 + a1) * 0.5f, ink(100, 153), 1.0f, bfDefault);
+                  (a0 + a1) * 0.5f, gray100(153), 1.0f, bfDefault);
     } else {
       // 树皮短笔（web 内联 bark 闭包）。
       Pt brk[21];
@@ -115,7 +145,7 @@ void Tree::barkify(float x, float y, const Pt* s0, const Pt* s1, int n) {
         brk[k].x = nx + x + cosf(aa + ba) * l * s;
         brk[k].y = ny + y + sinf(aa + ba) * l * s;
       }
-      brush_.stroke(brk, 21, ink(100, 102), 0.8f, 0.0f, 0.0f, wfSin3);
+      brush_.stroke(brk, 21, gray100(102), 0.8f, 0.0f, 0.0f, wfSin3);
     }
     if (rng_.next() < 0.05f) {
       int jl = (int)(rng_.next() * 2 + 2);
@@ -125,7 +155,7 @@ void Tree::barkify(float x, float y, const Pt* s0, const Pt* s1, int n) {
       for (int j = 0; j < jl; j++) {
         brush_.blob(bx + x + cosf(ba2) * (j - jl * 0.5f) * 4.0f,
                     by + y + sinf(ba2) * (j - jl * 0.5f) * 4.0f, 4.0f + 6.0f * rng_.next(),
-                    4.0f, a0 + PI / 2, ink(100, 153), 0.5f, bfDefault);
+                    4.0f, a0 + kPi / 2, gray100(153), 0.5f, bfDefault);
       }
     }
   }
@@ -148,7 +178,7 @@ void Tree::barkify(float x, float y, const Pt* s0, const Pt* s1, int n) {
         dv[j].x += x;
         dv[j].y += y;
       }
-      brush_.stroke(dv, dc, ink(100, 179), 1.5f, 0.5f, 0.0f, wfSin);
+      brush_.stroke(dv, dc, gray100(179), 1.5f, 0.5f, 0.0f, wfSin);
       gc = 0;
     }
   }
@@ -173,7 +203,7 @@ void Tree::tree01(float x, float y, float hei, float wid, uint8_t gray,
         brush_.blob(nx + (rng_.next() - 0.5f) * wid * 1.2f * (reso - i),
                     ny + (rng_.next() - 0.5f) * wid,
                     rng_.next() * 20 * (reso - i) * 0.2f + 10,
-                    rng_.next() * 6 + 3, (rng_.next() - 0.5f) * PI / 6,
+                    rng_.next() * 6 + 3, (rng_.next() - 0.5f) * kPi / 6,
                     ink(gray, a), 0.5f, bfDefault);
       }
     }
@@ -193,7 +223,7 @@ void Tree::tree02(float x, float y, float hei, float wid, int clu,
     brush_.blob(x + randGaussian(rng_) * clu * 4,
                 y + randGaussian(rng_) * clu * 4,
                 rng_.next() * hei * 0.75f + hei * 0.5f,
-                rng_.next() * wid * 0.75f + wid * 0.5f, PI / 2,
+                rng_.next() * wid * 0.75f + wid * 0.5f, kPi / 2,
                 ink(gray, alpha), 0.5f, bfLeaf);
   }
 }
@@ -218,7 +248,7 @@ void Tree::tree03(float x, float y, float hei, float wid, float benC,
         if (a < alpha) a = 255;
         brush_.blob(nx + ox * (rng_.next() < 0.5f ? -1 : 1),
                     ny + (rng_.next() - 0.5f) * wid * 2, ox * 2,
-                    rng_.next() * 6 + 3, (rng_.next() - 0.5f) * PI / 6,
+                    rng_.next() * 6 + 3, (rng_.next() - 0.5f) * kPi / 6,
                     ink(gray, a), 0.5f, bfDefault);
       }
     }
@@ -236,56 +266,33 @@ void Tree::tree03(float x, float y, float hei, float wid, float benC,
 void Tree::tree04(float x, float y, float hei, float wid, uint8_t gray,
                   uint8_t alpha) {
   Pt s0[48], s1[48];
-  int n = branch(hei, wid, -PI / 2, PI * 0.2f, 10, s0, s1, 48);
-  // 先铺白底+边缘（web 顺序的等价前置，避免白底盖掉皴笔）。
+  int n = branch(hei, wid, -kPi / 2, kPi * 0.2f, 10, s0, s1, 48);
   Pt tr[96];
-  int tc = 0;
-  for (int i = 0; i < n && tc < 90; i++) {
-    tr[tc].x = s0[i].x + x; tr[tc].y = s0[i].y + y; tc++;
-  }
-  for (int i = n - 1; i >= 0 && tc < 90; i--) {
-    tr[tc].x = s1[i].x + x; tr[tc].y = s1[i].y + y; tc++;
-  }
+  int tc = trunkOutline(s0, s1, n, x, y, tr);
   ras_.poly(tr, tc, paper(), none(), 0);
   barkify(x, y, s0, s1, n);
-  // 侧枝 + 嫩枝（枝形并入各自白底，不合并进主干多边形，省 RAM）。
   for (int i = 0; i < n; i++) {
     bool edge = (i >= n * 0.3f && i <= n * 0.7f && rng_.next() < 0.1f) ||
                 i == n / 2 - 1;
     if (!edge) continue;
-    float ba = PI * 0.2f - PI * 1.4f * (i > n / 2 ? 1 : 0);
+    float ba = kPi * 0.2f - kPi * 1.4f * (i > n / 2 ? 1 : 0);
     Pt b0[48], b1[48];
     int bn = branch(hei * (rng_.next() + 1) * 0.3f, wid * 0.5f, ba,
-                    PI * 0.2f, 10, b0, b1, 48);
-    // 枝白底。
+                    kPi * 0.2f, 10, b0, b1, 48);
     Pt bp[96];
-    int bc = 0;
-    for (int k = 1; k < bn && bc < 90; k++) {
-      bp[bc].x = b0[k].x + s0[i].x + x; bp[bc].y = b0[k].y + s0[i].y + y; bc++;
-    }
-    for (int k = bn - 1; k >= 1 && bc < 90; k--) {
-      bp[bc].x = b1[k].x + s0[i].x + x; bp[bc].y = b1[k].y + s0[i].y + y; bc++;
-    }
+    int bc = branchOutline(b0, b1, bn, s0[i].x + x, s0[i].y + y, bp);
     if (bc >= 3) ras_.poly(bp, bc, paper(), none(), 0);
-    // 枝皴。
-    for (int k = 0; k < bn; k++) {
-      b0[k].x += s0[i].x; b0[k].y += s0[i].y;
-      b1[k].x += s0[i].x; b1[k].y += s0[i].y;
-    }
+    translate(b0, bn, s0[i].x, s0[i].y);
+    translate(b1, bn, s0[i].x, s0[i].y);
     barkify(x, y, b0, b1, bn);
     for (int j = 0; j < bn; j++) {
-      if (rng_.next() < 0.2f || j == bn - 1) {
-        twig(b0[j].x + x, b0[j].y + y, 1, ba > -PI / 2 ? 1 : -1, 0.5f * hei / 300,
-             hei / 300, ba > -PI / 2 ? ba : ba + PI, true, 12);
-      }
+      if (rng_.next() < 0.2f || j == bn - 1)
+        twig(b0[j].x + x, b0[j].y + y, 1, ba > -kPi / 2 ? 1 : -1,
+             0.5f * hei / 300, hei / 300, ba > -kPi / 2 ? ba : ba + kPi, true,
+             12);
     }
   }
-  // 主干边缘线。
-  Pt e[96];
-  int ec = 0;
-  for (int i = 1; i < tc - 1 && ec < 96; i++) e[ec++] = tr[i];
-  uint8_t ea = 102 + (uint8_t)(rng_.next() * 26);
-  brush_.stroke(e, ec, ink(100, ea), 2.5f, 0.9f, 0.0f, wfSin1);
+  edgeStroke(tr, 1, tc - 1, 102);
   (void)gray;
   (void)alpha;
 }
@@ -293,15 +300,9 @@ void Tree::tree04(float x, float y, float hei, float wid, uint8_t gray,
 void Tree::tree05(float x, float y, float hei, float wid, uint8_t gray,
                   uint8_t alpha) {
   Pt s0[48], s1[48];
-  int n = branch(hei, wid, -PI / 2, 0.0f, 10, s0, s1, 48);
+  int n = branch(hei, wid, -kPi / 2, 0.0f, 10, s0, s1, 48);
   Pt tr[96];
-  int tc = 0;
-  for (int i = 0; i < n && tc < 90; i++) {
-    tr[tc].x = s0[i].x + x; tr[tc].y = s0[i].y + y; tc++;
-  }
-  for (int i = n - 1; i >= 0 && tc < 90; i--) {
-    tr[tc].x = s1[i].x + x; tr[tc].y = s1[i].y + y; tc++;
-  }
+  int tc = trunkOutline(s0, s1, n, x, y, tr);
   ras_.poly(tr, tc, paper(), none(), 0);
   barkify(x, y, s0, s1, n);
   for (int i = 0; i < n; i++) {
@@ -311,36 +312,26 @@ void Tree::tree05(float x, float y, float hei, float wid, uint8_t gray,
                  i == n / 2 - 1);
     if (!edge) continue;
     float bar = rng_.next() * 0.2f;
-    float ba = -bar * PI - (1 - bar * 2) * PI * (i > n / 2 ? 1 : 0);
+    float ba = -bar * kPi - (1 - bar * 2) * kPi * (i > n / 2 ? 1 : 0);
     Pt b0[48], b1[48];
     int bn = branch(hei * (0.3f * p - rng_.next() * 0.05f), wid * 0.5f, ba,
                     0.5f, 10, b0, b1, 48);
     Pt bp[96];
-    int bc = 0;
-    for (int k = 1; k < bn && bc < 90; k++) {
-      bp[bc].x = b0[k].x + s0[i].x + x; bp[bc].y = b0[k].y + s0[i].y + y; bc++;
-    }
-    for (int k = bn - 1; k >= 1 && bc < 90; k--) {
-      bp[bc].x = b1[k].x + s0[i].x + x; bp[bc].y = b1[k].y + s0[i].y + y; bc++;
-    }
+    int bc = branchOutline(b0, b1, bn, s0[i].x + x, s0[i].y + y, bp);
     if (bc >= 3) ras_.poly(bp, bc, paper(), none(), 0);
-    for (int k = 0; k < bn; k++) {
-      b0[k].x += s0[i].x; b0[k].y += s0[i].y;
-    }
+    translate(b0, bn, s0[i].x, s0[i].y);
+    translate(b1, bn, s0[i].x, s0[i].y);
     barkify(x, y, b0, b1, bn);
     for (int j = 0; j < bn; j++) {
-      if (j % 20 == 0 || j == bn - 1) {
-        twig(b0[j].x + x, b0[j].y + y, 0, ba > -PI / 2 ? 1 : -1,
-             0.2f * hei / 300, hei / 300, ba > -PI / 2 ? ba : ba + PI, true, 5);
-      }
+      if (j % 20 == 0 || j == bn - 1)
+        twig(b0[j].x + x, b0[j].y + y, 0, ba > -kPi / 2 ? 1 : -1,
+             0.2f * hei / 300, hei / 300, ba > -kPi / 2 ? ba : ba + kPi, true,
+             5);
     }
   }
-  Pt e[96];
-  int ec = 0;
-  for (int i = 1; i < tc - 1 && ec < 96; i++) e[ec++] = tr[i];
-  uint8_t ea = 102 + (uint8_t)(rng_.next() * 26);
-  brush_.stroke(e, ec, ink(100, ea), 2.5f, 0.9f, 0.0f, wfSin1);
-  (void)gray; (void)alpha;
+  edgeStroke(tr, 1, tc - 1, 102);
+  (void)gray;
+  (void)alpha;
 }
 
 void Tree::frac06(float xoff, float yoff, int dep, float hei, float wid,
@@ -355,7 +346,7 @@ void Tree::frac06(float xoff, float yoff, int dep, float hei, float wid,
                  i == n / 2 - 1 || i == n / 2 + 1) && dep > 0;
     if (!fork) continue;
     float bar = 0.02f + rng_.next() * 0.08f;
-    float ba = bar * PI - bar * 2 * PI * (i > n / 2 ? 1 : 0);
+    float ba = bar * kPi - bar * 2 * kPi * (i > n / 2 ? 1 : 0);
     float cx = s0[i].x + xoff, cy = s0[i].y + yoff;
     frac06(cx, cy, dep - 1, hei * (0.7f + rng_.next() * 0.2f), wid * 0.6f,
            ang + ba, 0.55f);
@@ -366,24 +357,18 @@ void Tree::frac06(float xoff, float yoff, int dep, float hei, float wid,
     }
   }
   Pt poly[96];
-  int pc = 0;
-  for (int i = 0; i < n && pc < 90; i++) {
-    poly[pc].x = s0[i].x + xoff; poly[pc].y = s0[i].y + yoff; pc++;
-  }
-  for (int i = n - 1; i >= 0 && pc < 90; i--) {
-    poly[pc].x = s1[i].x + xoff; poly[pc].y = s1[i].y + yoff; pc++;
-  }
+  int pc = trunkOutline(s0, s1, n, xoff, yoff, poly);
   if (pc >= 3) ras_.poly(poly, pc, paper(), none(), 0);
   barkify(xoff, yoff, s0, s1, n);
 }
 
 void Tree::tree06(float x, float y, float hei, float wid, uint8_t gray,
                   uint8_t alpha) {
-  frac06(x, y, 2, hei, wid, -PI / 2, 0.0f); // 深 2（原 3，MCU 省栈）。
+  frac06(x, y, 2, hei, wid, -kPi / 2, 0.0f); // 深 2（原 3，MCU 省栈）。
   // 主干边缘线（近似：竖向描边）。
   Pt e[8] = {{x, y}, {x, y - hei * 0.5f}, {x, y - hei}};
   uint8_t ea = 102 + (uint8_t)(rng_.next() * 26);
-  brush_.stroke(e, 3, ink(100, ea), 2.5f, 0.9f, 0.0f, wfSin1);
+  brush_.stroke(e, 3, gray100(ea), 2.5f, 0.9f, 0.0f, wfSin1);
   (void)gray; (void)alpha;
 }
 
@@ -410,7 +395,7 @@ void Tree::tree07(float x, float y, float hei, float wid, uint8_t gray,
         float yo = bfPine(pp) * bw * 0.5f;
         float l = sqrtf(xo * xo + yo * yo), aa = atan2f(yo, xo);
         float s = ns[k] * 0.5f + 0.5f;
-        float ba = -rng_.next() * PI / 6;
+        float ba = -rng_.next() * kPi / 6;
         bp[k].x = bx + cosf(aa + ba) * l * s;
         bp[k].y = by + sinf(aa + ba) * l * s;
       }
@@ -448,7 +433,7 @@ void Tree::frac08(float xoff, float yoff, int dep, float ang, float len,
   float pick = rng_.next() < 0.5f ? 1.0f : -1.0f;
   for (int i = 0; i < dc; i++) {
     float f = (float)i / (dc > 1 ? dc - 1 : 1);
-    dv[i].y += sinf(f * PI) * pick * 2.0f;
+    dv[i].y += sinf(f * kPi) * pick * 2.0f;
   }
   for (int i = 0; i < dc; i++) {
     float dx = dv[i].x - a.x, dy = dv[i].y - a.y;
@@ -456,17 +441,17 @@ void Tree::frac08(float xoff, float yoff, int dep, float ang, float len,
     dv[i].x = a.x + d * cosf(aa + ang);
     dv[i].y = a.y + d * sinf(aa + ang);
   }
-  brush_.stroke(dv, dc, ink(100, 128), 0.8f, 0.5f, 1.0f,
+  brush_.stroke(dv, dc, gray100(128), 0.8f, 0.5f, 1.0f,
                 dep == 0 ? wfCosHalf : wfOne);
   if (dep == 0) return;
-  float nben = ben + (rng_.next() < 0.5f ? -1 : 1) * PI * 0.001f * dep * dep;
+  float nben = ben + (rng_.next() < 0.5f ? -1 : 1) * kPi * 0.001f * dep * dep;
   float nl = len * rng_.range(0.8f, 0.9f);
   if (rng_.next() < 0.5f) {
     int s1 = rng_.next() < 0.5f ? -1 : 1, s2 = rng_.next() < 0.5f ? -1 : 1;
     float r1 = s1 > 0 ? rng_.range(0.5f, 1.0f) : rng_.range(-1.0f, 0.5f);
     float r2 = s2 > 0 ? rng_.range(0.5f, 1.0f) : rng_.range(-1.0f, -0.5f);
-    frac08(b.x, b.y, dep - 1, ang + ben + PI * r1 * 0.2f, nl, nben);
-    frac08(b.x, b.y, dep - 1, ang + ben + PI * r2 * 0.2f, nl, nben);
+    frac08(b.x, b.y, dep - 1, ang + ben + kPi * r1 * 0.2f, nl, nben);
+    frac08(b.x, b.y, dep - 1, ang + ben + kPi * r2 * 0.2f, nl, nben);
   } else {
     frac08(b.x, b.y, dep - 1, ang + ben, nl, nben);
   }
@@ -474,33 +459,24 @@ void Tree::frac08(float xoff, float yoff, int dep, float ang, float len,
 
 void Tree::tree08(float x, float y, float hei, float wid, uint8_t gray,
                   uint8_t alpha) {
-  float ang = rng_.range(-1, 1) * PI * 0.2f;
+  float ang = rng_.range(-1, 1) * kPi * 0.2f;
   Pt s0[48], s1[48];
   float det = hei / 20.0f;
   if (det < 2) det = 2;
   if (det > 10) det = 10;
-  int n = branch(hei, wid, -PI / 2 + ang, PI * 0.2f, det, s0, s1, 48);
+  int n = branch(hei, wid, -kPi / 2 + ang, kPi * 0.2f, det, s0, s1, 48);
   Pt tr[96];
-  int tc = 0;
-  for (int i = 0; i < n && tc < 90; i++) {
-    tr[tc].x = s0[i].x + x; tr[tc].y = s0[i].y + y; tc++;
-  }
-  for (int i = n - 1; i >= 0 && tc < 90; i--) {
-    tr[tc].x = s1[i].x + x; tr[tc].y = s1[i].y + y; tc++;
-  }
+  int tc = trunkOutline(s0, s1, n, x, y, tr);
   ras_.poly(tr, tc, paper(), ink(gray, alpha), 0);
   for (int i = 0; i < n; i++) {
     if (rng_.next() < 0.2f) {
-      frac08(x + s0[i].x, y + s0[i].y, (int)(4 * rng_.next()), -PI / 2 - ang * rng_.next(), 15, 0);
+      frac08(x + s0[i].x, y + s0[i].y, (int)(4 * rng_.next()),
+             -kPi / 2 - ang * rng_.next(), 15, 0);
     } else if (i == n / 2) {
-      frac08(x + s0[i].x, y + s0[i].y, 3, -PI / 2 + ang, 15, 0);
+      frac08(x + s0[i].x, y + s0[i].y, 3, -kPi / 2 + ang, 15, 0);
     }
   }
-  Pt e[96];
-  int ec = 0;
-  for (int i = 0; i < tc && ec < 96; i++) e[ec++] = tr[i];
-  uint8_t ea = 153 + (uint8_t)(rng_.next() * 26);
-  brush_.stroke(e, ec, ink(100, ea), 2.5f, 0.9f, 0.0f, wfSin1);
+  edgeStroke(tr, 0, tc, 153);
 }
 
 } // namespace shanshui

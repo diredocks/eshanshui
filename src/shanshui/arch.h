@@ -1,6 +1,6 @@
-// shanshui/arch.h — 建筑/船/塔（web/js/entities/arch.js 的 MCU 版）。
-// 屋顶题字（<text>Pizza Hut</text> 彩蛋） drop：光栅器无字库。
+// shanshui/arch.h — 建筑/船/塔（web/arch.js 的 MCU 版）。
 #pragma once
+
 #include "man.h"
 
 namespace shanshui {
@@ -39,7 +39,7 @@ class Arch {
   Brush& brush_;
   Raster& ras_;
   Man& man_;
-  // 装饰线：写入 lines（每条 ≤8 点），返回条数。
+  // 写入 lines（每条 ≤8 点），返回条数。
   int deco(int style, const Pt& pul, const Pt& pur, const Pt& pdl,
            const Pt& pdr, Pt lines[][8]);
   void quickstroke(const Pt* pl, int n, float xoff, float yoff);

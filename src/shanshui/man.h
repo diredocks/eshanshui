@@ -1,6 +1,6 @@
-// shanshui/man.h — 人物（web/js/entities/man.js 的 MCU 版）。
-// 骨架 + 衣纹展开 + 斗笠/蓑衣，全部静态缓冲、无字符串。
+// shanshui/man.h — 人物（web/man.js 的 MCU 版）。
 #pragma once
+
 #include "brush.h"
 
 namespace shanshui {

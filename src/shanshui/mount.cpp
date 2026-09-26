@@ -3,13 +3,11 @@
 
 namespace shanshui {
 
-static const float PI = 3.14159265f;
-
-// 网格放 BSS（mountain 10×50，rock 10×50，flat 5×50，无重入调用，安全）。
+// 网格放 BSS（无重入调用）。
 static Pt s_mgrid[SHANSHUI_MOUNT_I * SHANSHUI_MOUNT_J];
 static Pt s_rgrid[SHANSHUI_MOUNT_I * SHANSHUI_MOUNT_J];
 static Pt s_fgrid[SHANSHUI_FLAT_I * SHANSHUI_FLAT_J];
-// 山腰候选点（web 为动态数组；BSS 定长 256，避免截断改画面）。
+// 山腰候选点（web 为动态数组，这里定长 256）。
 static Pt s_cand[256];
 
 static inline uint8_t aOf(float a01) {
@@ -38,13 +36,8 @@ void Mount::foot(const Pt* grid, int I, int J, float xof, float yof) {
       f1[c1].y = grid[i * J + (J - 1 - j)].y;
       c1++;
     }
-    // 反转前半（web reverse 语义）。
-    for (int a = 0; a < c0 / 2; a++) {
-      Pt t = f0[a]; f0[a] = f0[c0 - 1 - a]; f0[c0 - 1 - a] = t;
-    }
-    for (int a = 0; a < c1 / 2; a++) {
-      Pt t = f1[a]; f1[a] = f1[c1 - 1 - a]; f1[c1 - 1 - a] = t;
-    }
+    reversePts(f0, c0);
+    reversePts(f1, c1);
     for (int j = 0; j < span && c0 < 23 && c1 < 23; j++) {
       float p = (float)j / span;
       float x1 = grid[i * J].x * (1 - p) + grid[ni * J].x * p;
@@ -60,147 +53,185 @@ void Mount::foot(const Pt* grid, int I, int J, float xof, float yof) {
     ras_.poly(f0, c0, paper(), none(), 0, xof, yof);
     ras_.poly(f1, c1, paper(), none(), 0, xof, yof);
     Pt w0[24], w1[24];
-    for (int k = 0; k < c0; k++) { w0[k].x = f0[k].x + xof; w0[k].y = f0[k].y + yof; }
-    for (int k = 0; k < c1; k++) { w1[k].x = f1[k].x + xof; w1[k].y = f1[k].y + yof; }
+    copyOffset(w0, f0, c0, xof, yof);
+    copyOffset(w1, f1, c1, xof, yof);
     uint8_t a = 26 + (uint8_t)(rng_.next() * 26);
-    brush_.stroke(w0, c0, ink(100, a), 1.0f, 0.5f, 1.0f, wfSin);
-    brush_.stroke(w1, c1, ink(100, a), 1.0f, 0.5f, 1.0f, wfSin);
+    brush_.stroke(w0, c0, gray100(a), 1.0f, 0.5f, 1.0f, wfSin);
+    brush_.stroke(w1, c1, gray100(a), 1.0f, 0.5f, 1.0f, wfSin);
   }
 }
 
 void Mount::mountain(float xoff, float yoff, float seed, bool veg) {
   float hei = 100 + rng_.next() * 400;
   float wid = 400 + rng_.next() * 200;
-  int tex = 200; // web 默认；TEX_DIV 缩放在 Brush::texture 内统一做。
   Pt* grid = s_mgrid;
   const int I = SHANSHUI_MOUNT_I, J = SHANSHUI_MOUNT_J;
   float hoff = 0;
   for (int j = 0; j < I; j++) {
     hoff += (rng_.next() * yoff) / 100;
     for (int i = 0; i < J; i++) {
-      float x = ((float)i / J - 0.5f) * PI;
+      float x = ((float)i / J - 0.5f) * kPi;
       float y = cosf(x) * noise_.noise(x + 10, j * 0.15f, seed);
       float p = 1 - (float)j / I;
-      grid[j * J + i].x = (x / PI) * wid * p;
+      grid[j * J + i].x = (x / kPi) * wid * p;
       grid[j * J + i].y = -y * hei * p + hoff;
     }
   }
-  // 山脊点树（RIM）。
-  for (int j = 0; j < J; j++) {
-    float ns = noise_.noise(j * 0.1f, seed);
-    if (ns * ns * ns < 0.1f && fabsf(grid[j].y) / hei > 0.2f) {
-      float a = noise_.noise(0.01f * (grid[j].x + xoff), 0.01f * (grid[j].y + yoff)) * 0.5f * 0.3f + 0.5f;
-      tree_.tree02(grid[j].x + xoff, grid[j].y + yoff - 5, 16, 8, 2, 100, aOf(a));
-    }
-  }
+  ridgeTrees(grid, xoff, yoff, seed, hei);
   // 白底 + 轮廓。
   Pt bg[SHANSHUI_MOUNT_J + 1];
   for (int i = 0; i < J; i++) bg[i] = grid[i];
   bg[J].x = 0; bg[J].y = I * 4;
   ras_.poly(bg, J + 1, paper(), none(), 0, xoff, yoff);
   Pt edge[SHANSHUI_MOUNT_J];
-  for (int i = 0; i < J; i++) {
-    edge[i].x = grid[i].x + xoff; edge[i].y = grid[i].y + yoff;
-  }
-  brush_.stroke(edge, J, ink(100, 77), 3.0f, 1.0f, 1.0f, wfSin);
+  copyOffset(edge, grid, J, xoff, yoff);
+  brush_.stroke(edge, J, gray100(77), 3.0f, 1.0f, 1.0f, wfSin);
   foot(grid, I, J, xoff, yoff);
   TexArgs t;
-  t.tex = tex;
+  t.tex = 200;
   static const int kShade[5] = {0, 0, 0, 0, 5};
   t.sha = (float)rng_.choice<5>(kShade);
   brush_.texture(grid, I, J, xoff, yoff, t);
-  // 山顶簇树（TOP）。
-  for (int i = 0; i < I; i++) {
+
+  topTrees(grid, xoff, yoff, seed, hei);
+  if (veg) {
+    midTrees(grid, xoff, yoff, seed, hei);
+    bottomTrees(grid, xoff, yoff, seed, hei);
+  }
+  bottomArch(grid, xoff, yoff, seed);
+  topArch(grid, xoff, yoff, seed);
+  transm(grid, xoff, yoff, seed);
+  bottomRocks(grid, xoff, yoff);
+}
+
+void Mount::ridgeTrees(const Pt* grid, float xoff, float yoff, float seed,
+                       float hei) {
+  const int J = SHANSHUI_MOUNT_J;
+  for (int j = 0; j < J; j++) {
+    float ns = noise_.noise(j * 0.1f, seed);
+    if (ns * ns * ns < 0.1f && fabsf(grid[j].y) / hei > 0.2f) {
+      float a = noise_.noise(0.01f * (grid[j].x + xoff),
+                             0.01f * (grid[j].y + yoff)) * 0.5f * 0.3f + 0.5f;
+      tree_.tree02(grid[j].x + xoff, grid[j].y + yoff - 5, 16, 8, 2, 100,
+                   aOf(a));
+    }
+  }
+}
+
+void Mount::topTrees(const Pt* grid, float xoff, float yoff, float seed,
+                     float hei) {
+  const int I = SHANSHUI_MOUNT_I, J = SHANSHUI_MOUNT_J;
+  for (int i = 0; i < I; i++)
     for (int j = 0; j < J; j++) {
       float ns = noise_.noise(i * 0.1f, j * 0.1f, seed + 2);
       if (ns * ns * ns < 0.1f && fabsf(grid[i * J + j].y) / hei > 0.5f) {
-        float a = noise_.noise(0.01f * (grid[i * J + j].x + xoff), 0.01f * (grid[i * J + j].y + yoff)) * 0.5f * 0.3f + 0.5f;
-        tree_.tree02(grid[i * J + j].x + xoff, grid[i * J + j].y + yoff, 16, 8, 5, 100, aOf(a));
+        float a = noise_.noise(0.01f * (grid[i * J + j].x + xoff),
+                               0.01f * (grid[i * J + j].y + yoff)) * 0.5f * 0.3f +
+                  0.5f;
+        tree_.tree02(grid[i * J + j].x + xoff, grid[i * J + j].y + yoff, 16, 8,
+                     5, 100, aOf(a));
       }
     }
-  }
-  if (veg) {
-    // 山腰松（MIDDLE，聚集 proof）。独立作用域：cand 用完即释放栈。
-    {
-      Pt* cand = s_cand;
-      int cc = 0;
-      for (int i = 0; i < I && cc < 256; i++)
-        for (int j = 0; j < J && cc < 256; j++) {
-        float ns = noise_.noise(i * 0.2f, j * 0.05f, seed);
-        if ((j % 2) && ns * ns * ns * ns < 0.012f &&
-            fabsf(grid[i * J + j].y) / hei < 0.3f) {
-          cand[cc++] = grid[i * J + j];
-        }
-      }
-    for (int i = 0; i < cc; i++) {
-      int nb = 0;
-      for (int k = 0; k < cc && nb <= 2; k++) {
-        if (i == k) continue;
-        float dx = cand[i].x - cand[k].x, dy = cand[i].y - cand[k].y;
-        if (dx * dx + dy * dy < 900) nb++;
-      }
-      if (nb > 2) {
-        float ht = ((hei + cand[i].y) / hei) * 70;
-        ht = ht * 0.3f + rng_.next() * ht * 0.7f;
-        float a = noise_.noise(0.01f * (cand[i].x + xoff), 0.01f * (cand[i].y + yoff)) * 0.5f * 0.3f + 0.3f;
-        tree_.tree01(cand[i].x + xoff, cand[i].y + yoff, ht,
-                     rng_.next() * 3 + 1, 100, aOf(a));
+}
+
+void Mount::midTrees(const Pt* grid, float xoff, float yoff, float seed,
+                     float hei) {
+  const int I = SHANSHUI_MOUNT_I, J = SHANSHUI_MOUNT_J;
+  Pt* cand = s_cand;
+  int cc = 0;
+  for (int i = 0; i < I && cc < 256; i++)
+    for (int j = 0; j < J && cc < 256; j++) {
+      float ns = noise_.noise(i * 0.2f, j * 0.05f, seed);
+      if ((j % 2) && ns * ns * ns * ns < 0.012f &&
+          fabsf(grid[i * J + j].y) / hei < 0.3f) {
+        cand[cc++] = grid[i * J + j];
       }
     }
-    } // 释放 cand 栈。
-    // 山脚杂树（BOTTOM）。
-    for (int i = 0; i < I; i++)
-      for (int j = 0; j < J; j++) {
-        float ns = noise_.noise(i * 0.2f, j * 0.05f, seed);
-        if ((j == 0 || j == J - 1) && ns * ns * ns * ns < 0.012f) {
-          float ht = ((hei + grid[i * J + j].y) / hei) * 120;
-          ht = ht * 0.5f + rng_.next() * ht * 0.5f;
-          float bc = rng_.next() * 0.1f;
-          float a = noise_.noise(0.01f * (grid[i * J + j].x + xoff), 0.01f * (grid[i * J + j].y + yoff)) * 0.5f * 0.3f + 0.3f;
-          tree_.tree03(grid[i * J + j].x + xoff, grid[i * J + j].y + yoff, ht,
-                       5, bc, 1.0f, 100, aOf(a));
-        }
-      }
+  for (int i = 0; i < cc; i++) {
+    int nb = 0;
+    for (int k = 0; k < cc && nb <= 2; k++) {
+      if (i == k) continue;
+      float dx = cand[i].x - cand[k].x, dy = cand[i].y - cand[k].y;
+      if (dx * dx + dy * dy < 900) nb++;
+    }
+    if (nb > 2) {
+      float ht = ((hei + cand[i].y) / hei) * 70;
+      ht = ht * 0.3f + rng_.next() * ht * 0.7f;
+      float a = noise_.noise(0.01f * (cand[i].x + xoff),
+                             0.01f * (cand[i].y + yoff)) * 0.5f * 0.3f + 0.3f;
+      tree_.tree01(cand[i].x + xoff, cand[i].y + yoff, ht,
+                   rng_.next() * 3 + 1, 100, aOf(a));
+    }
   }
-  // 山脚建筑（BOTT ARCH）。
+}
+
+void Mount::bottomTrees(const Pt* grid, float xoff, float yoff, float seed,
+                        float hei) {
+  const int I = SHANSHUI_MOUNT_I, J = SHANSHUI_MOUNT_J;
+  for (int i = 0; i < I; i++)
+    for (int j = 0; j < J; j++) {
+      float ns = noise_.noise(i * 0.2f, j * 0.05f, seed);
+      if ((j == 0 || j == J - 1) && ns * ns * ns * ns < 0.012f) {
+        float ht = ((hei + grid[i * J + j].y) / hei) * 120;
+        ht = ht * 0.5f + rng_.next() * ht * 0.5f;
+        float bc = rng_.next() * 0.1f;
+        float a = noise_.noise(0.01f * (grid[i * J + j].x + xoff),
+                               0.01f * (grid[i * J + j].y + yoff)) * 0.5f * 0.3f +
+                  0.3f;
+        tree_.tree03(grid[i * J + j].x + xoff, grid[i * J + j].y + yoff, ht, 5,
+                     bc, 1.0f, 100, aOf(a));
+      }
+    }
+}
+
+void Mount::bottomArch(const Pt* grid, float xoff, float yoff, float seed) {
+  const int I = SHANSHUI_MOUNT_I, J = SHANSHUI_MOUNT_J;
+  static const int kBottArch[6] = {0, 0, 1, 1, 1, 2};
+  static const int kArch02Sto[4] = {1, 2, 2, 3};
+  static const int kArch02Sty[3] = {1, 2, 3};
+  static const int kArch04Sto[5] = {1, 1, 1, 2, 2};
   for (int i = 0; i < I; i++)
     for (int j = 0; j < J; j++) {
       float ns = noise_.noise(i * 0.2f, j * 0.05f, seed + 10);
       if (i != 0 && (j == 1 || j == J - 2) && ns * ns * ns * ns < 0.008f) {
-        static const int kBottArch[6] = {0, 0, 1, 1, 1, 2};
-        static const int kArch02Sto[4] = {1, 2, 2, 3};
-        static const int kArch02Sty[3] = {1, 2, 3};
-        static const int kArch04Sto[5] = {1, 1, 1, 2, 2};
         int tt = rng_.choice<6>(kBottArch);
         if (tt == 1)
-          arch_.arch02(grid[i * J + j].x + xoff, grid[i * J + j].y + yoff,
-                       seed, 10, rng_.range(40, 70), rng_.next(), 5,
+          arch_.arch02(grid[i * J + j].x + xoff, grid[i * J + j].y + yoff, seed,
+                       10, rng_.range(40, 70), rng_.next(), 5,
                        rng_.choice<4>(kArch02Sto),
                        rng_.choice<3>(kArch02Sty), false);
         else if (tt == 2)
-          arch_.arch04(grid[i * J + j].x + xoff, grid[i * J + j].y + yoff,
-                       seed, 15, 30, 0.7f, 5,
-                       rng_.choice<5>(kArch04Sto));
+          arch_.arch04(grid[i * J + j].x + xoff, grid[i * J + j].y + yoff, seed,
+                       15, 30, 0.7f, 5, rng_.choice<5>(kArch04Sto));
       }
     }
-  // 山顶塔（TOP ARCH）：第 1 排中央，2% 概率。
+}
+
+void Mount::topArch(const Pt* grid, float xoff, float yoff, float seed) {
+  const int J = SHANSHUI_MOUNT_J;
+  static const int kTopArchSto[2] = {5, 7};
   for (int j = 0; j < J; j++) {
     int dj = j - J / 2;
     if (dj < 0) dj = -dj;
-    if (dj < 1 && rng_.next() < 0.02f) {
-      static const int kTopArchSto[2] = {5, 7};
-      arch_.arch03(grid[1 * J + j].x + xoff, grid[1 * J + j].y + yoff, seed,
-                   10, 50, 0.7f, 5, rng_.choice<2>(kTopArchSto));
-    }
+    if (dj < 1 && rng_.next() < 0.02f)
+      arch_.arch03(grid[J + j].x + xoff, grid[J + j].y + yoff, seed, 10, 50,
+                   0.7f, 5, rng_.choice<2>(kTopArchSto));
   }
-  // 电塔（TRANSM）。
+}
+
+void Mount::transm(const Pt* grid, float xoff, float yoff, float seed) {
+  const int I = SHANSHUI_MOUNT_I, J = SHANSHUI_MOUNT_J;
   for (int i = 0; i < I; i += 2)
     for (int j = 0; j < J; j++) {
-      float ns = noise_.noise(i * 0.2f, j * 0.05f, seed + 20 * PI);
+      float ns = noise_.noise(i * 0.2f, j * 0.05f, seed + 20 * kPi);
       if ((j == 1 || j == J - 2) && ns * ns * ns * ns < 0.002f)
-        arch_.tower01(grid[i * J + j].x + xoff, grid[i * J + j].y + yoff, 100, 20);
+        arch_.tower01(grid[i * J + j].x + xoff, grid[i * J + j].y + yoff, 100,
+                      20);
     }
-  // 山脚石（BOTT ROCK）。
+}
+
+void Mount::bottomRocks(const Pt* grid, float xoff, float yoff) {
+  const int I = SHANSHUI_MOUNT_I, J = SHANSHUI_MOUNT_J;
   for (int i = 0; i < I; i++)
     for (int j = 0; j < J; j++)
       if ((j == 0 || j == J - 1) && rng_.next() < 0.1f)
@@ -214,9 +245,6 @@ void Mount::flatMount(float xoff, float yoff, float seed, float wid, float hei,
   Pt* grid = s_fgrid;
   const int I = SHANSHUI_FLAT_I, J = SHANSHUI_FLAT_J;
   float hoff = 0;
-  float flat[SHANSHUI_FLAT_I][2][2]; // 每行至多一段平台 [x0,y0,x1,y1] 近似
-  int fn = 0;
-  (void)fn;
   Pt fseg[SHANSHUI_FLAT_I * 2][2];
   int fsg = 0;
   for (int j = 0; j < I; j++) {
@@ -224,10 +252,10 @@ void Mount::flatMount(float xoff, float yoff, float seed, float wid, float hei,
     bool inFlat = false;
     float fx0 = 0, fy0 = 0;
     for (int i = 0; i < J; i++) {
-      float x = ((float)i / J - 0.5f) * PI;
+      float x = ((float)i / J - 0.5f) * kPi;
       float y = (cosf(x * 2) + 1) * noise_.noise(x + 10, j * 0.1f, seed);
       float p = 1 - ((float)j / I) * 0.6f;
-      float nx = (x / PI) * wid * p;
+      float nx = (x / kPi) * wid * p;
       float ny = -y * hei * p + hoff;
       float h = hei / 2.6f;
       bool nowFlat = ny < -h * cho + hoff;
@@ -253,32 +281,33 @@ void Mount::flatMount(float xoff, float yoff, float seed, float wid, float hei,
       fsg++;
     }
   }
-  (void)flat;
   Pt bg[SHANSHUI_FLAT_J + 1];
   for (int i = 0; i < J; i++) bg[i] = grid[i];
   bg[J].x = 0; bg[J].y = I * 4;
   ras_.poly(bg, J + 1, paper(), none(), 0, xoff, yoff);
   Pt edge[SHANSHUI_FLAT_J];
-  for (int i = 0; i < J; i++) {
-    edge[i].x = grid[i].x + xoff; edge[i].y = grid[i].y + yoff;
-  }
-  brush_.stroke(edge, J, ink(100, 77), 3.0f, 1.0f, 1.0f, wfSin);
+  copyOffset(edge, grid, J, xoff, yoff);
+  brush_.stroke(edge, J, gray100(77), 3.0f, 1.0f, 1.0f, wfSin);
   TexArgs t;
   t.tex = 80;
   t.wid = 2.0f;
   t.dis = DIS_FLAT;
   brush_.texture(grid, I, J, xoff, yoff, t);
-  // 平台岸线（取偶数行两端点，web grlist1/grlist2 语义简化）。
-  // 平台岸线（独立作用域，大缓冲用完即释，再进 flatDec 深调用）。
   float xmin, xmax, ymin, ymax;
-  {
-    Pt g1[16], g2[16];
-    int n1 = 0, n2 = 0;
+  if (!flatShoreline(xoff, yoff, fseg, fsg, xmin, xmax, ymin, ymax)) return;
+  flatDec(xoff, yoff, xmin, xmax, ymin, ymax);
+}
+
+// 取偶数行两端点画平台岸线，并输出包围盒。fsg==0 或岸线为空返回 false。
+bool Mount::flatShoreline(float xoff, float yoff, const Pt (*fseg)[2], int fsg,
+                          float& xmin, float& xmax, float& ymin, float& ymax) {
+  Pt g1[16], g2[16];
+  int n1 = 0, n2 = 0;
   for (int k = 0; k < fsg && n1 < 14 && n2 < 14; k += 2) {
     g1[n1++] = fseg[k][0];
     g2[n2++] = fseg[k][1];
   }
-  if (n1 == 0) return;
+  if (n1 == 0) return false;
   float wb0 = g1[0].x, wb1 = g2[0].x;
   for (int i = 0; i < 3 && n1 < 15 && n2 < 15; i++) {
     float p = 0.8f - i * 0.2f;
@@ -307,10 +336,8 @@ void Mount::flatMount(float xoff, float yoff, float seed, float wid, float hei,
   }
   ras_.poly(gr, gc, paper(), none(), 0, xoff, yoff);
   Pt ge[96];
-  for (int i = 0; i < gc && i < 96; i++) {
-    ge[i].x = gr[i].x + xoff; ge[i].y = gr[i].y + yoff;
-  }
-  brush_.stroke(ge, gc, ink(100, 51), 3.0f, 0.5f, 1.0f, wfSin);
+  copyOffset(ge, gr, gc, xoff, yoff);
+  brush_.stroke(ge, gc, gray100(51), 3.0f, 0.5f, 1.0f, wfSin);
   xmin = 1e30f; xmax = -1e30f; ymin = 1e30f; ymax = -1e30f;
   for (int i = 0; i < gc; i++) {
     if (gr[i].x < xmin) xmin = gr[i].x;
@@ -318,8 +345,7 @@ void Mount::flatMount(float xoff, float yoff, float seed, float wid, float hei,
     if (gr[i].y < ymin) ymin = gr[i].y;
     if (gr[i].y > ymax) ymax = gr[i].y;
   }
-  }
-  flatDec(xoff, yoff, xmin, xmax, ymin, ymax);
+  return true;
 }
 
 void Mount::flatDec(float xoff, float yoff, float xmin, float xmax, float ymin,
@@ -413,7 +439,7 @@ void Mount::distMount(float xoff, float yoff, float seed) {
     Pt top[8], bot[4];
     for (int j = 0; j <= seg; j++) {
       float k = (float)(i * seg + j);
-      float s = sinf(PI * k / (len / span));
+      float s = sinf(kPi * k / (len / span));
       if (s < 0) s = 0;
       top[j].x = xoff + k * span;
       top[j].y = yoff - hei * noise_.noise(k * 0.05f, seed) * sqrtf(s);
@@ -422,7 +448,7 @@ void Mount::distMount(float xoff, float yoff, float seed) {
     // （web 原样 j*2 在 seg=5 时末段短一步，靠同色三角描边 bleed 掩盖。）
     for (int j = 0; j <= seg / 2; j++) {
       float k = i * seg + j * (seg / 2.0f);
-      float s = sinf(PI * k / (len / span));
+      float s = sinf(kPi * k / (len / span));
       if (s < 0) s = 0;
       bot[j].x = xoff + k * span;
       bot[j].y = yoff + 24 * noise_.noise(k * 0.05f, 2, seed) * s;
@@ -450,14 +476,14 @@ void Mount::rock(float xoff, float yoff, float seed, float wid, float hei,
     for (int j = 0; j < J; j++) ns[j] = noise_.noise(i, j * 0.2f, seed);
     loopNoise(ns, J);
     for (int j = 0; j < J; j++) {
-      float a = ((float)j / J) * PI * 2 - PI / 2;
+      float a = ((float)j / J) * kPi * 2 - kPi / 2;
       float hc = hei * cosf(a), ws = wid * sinf(a);
       float l = (wid * hei) / sqrtf(hc * hc + ws * ws);
       l *= 0.7f + 0.3f * ns[j];
       float p = 1 - (float)i / I;
       float nx = cosf(a) * l * p;
       float ny = -sinf(a) * l * p;
-      if (a > PI || a < 0) ny *= 0.2f;
+      if (a > kPi || a < 0) ny *= 0.2f;
       ny += hei * ((float)i / I) * 0.2f;
       grid[i * J + j].x = nx;
       grid[i * J + j].y = ny;
@@ -468,10 +494,8 @@ void Mount::rock(float xoff, float yoff, float seed, float wid, float hei,
   bg[J].x = 0; bg[J].y = 0;
   ras_.poly(bg, J + 1, paper(), none(), 0, xoff, yoff);
   Pt edge[SHANSHUI_MOUNT_J];
-  for (int i = 0; i < J; i++) {
-    edge[i].x = grid[i].x + xoff; edge[i].y = grid[i].y + yoff;
-  }
-  brush_.stroke(edge, J, ink(100, 77), 3.0f, 1.0f, 1.0f, wfSin);
+  copyOffset(edge, grid, J, xoff, yoff);
+  brush_.stroke(edge, J, gray100(77), 3.0f, 1.0f, 1.0f, wfSin);
   TexArgs t;
   t.tex = tex;
   t.wid = 3.0f;

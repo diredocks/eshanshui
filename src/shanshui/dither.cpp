@@ -1,20 +1,17 @@
 #include "dither.h"
 #if SHANSHUI_DEGAMMA
-#include <math.h> // 仅 LUT 预计算用一次 powf，热循环无浮点。
+#include <math.h> // 仅 LUT 预计算用一次 powf。
 #endif
 
 namespace shanshui {
 
-// Bayer4（web Dither.bayer4），阈值 = (b+0.5)*255/16，四舍五入到整数。
+// Bayer4，阈值 = (b+0.5)*255/16，按 (y%4)*4+(x%4) 查表。
 static const uint8_t BAYER_TH[16] = {
   8, 135, 40, 167, 199, 72, 231, 104, 56, 183, 24, 151, 247, 120, 215, 88,
 };
-// 按 (y%4)*4+(x%4) 查表，上表已按该顺序排好：
-// bayer4=[0,8,2,10, 12,4,14,6, 3,11,1,9, 15,7,13,5] -> th 如上。
 
 #if SHANSHUI_DEGAMMA
-// sRGB->linear LUT（uint8 域：lin255 = round(255*(g/255)^gamma)）。
-// 存 float 会把浮点乘/转换带进逐像素热循环；本管线全整数，uint8 零代价。
+// sRGB->linear LUT（uint8 域，全整数零代价）。
 static uint8_t s_gamma_lut[256];
 static bool s_gamma_ready = false;
 
@@ -43,16 +40,25 @@ static inline void emitBit(uint8_t* bits, size_t i, uint8_t white) {
     bits[i >> 3] &= (uint8_t)~(0x80 >> (i & 7));
 }
 
-static void ditherOrderedBand(const uint8_t* grayBand, uint8_t* bits,
-                              int y0, int h, DitherAlgo algo) {
-  if (!grayBand || !bits) return;
+// 钳制带窗口到屏内；返回 false 表示该带为空。
+static bool clampBand(int& y0, int& h) {
   if (y0 < 0) { h += y0; y0 = 0; }
   if (y0 + h > SHANSHUI_H) h = SHANSHUI_H - y0;
-  if (h <= 0) return;
-  // W 为 8 倍数，带边界按字节对齐，可整字节清零。
+  return h > 0;
+}
+
+// W 为 8 倍数，带边界按字节对齐，可整字节清零。
+static void clearBand(uint8_t* bits, int y0, int h) {
   size_t bpr = SHANSHUI_W / 8;
   for (size_t i = (size_t)y0 * bpr; i < (size_t)(y0 + h) * bpr; i++)
     bits[i] = 0;
+}
+
+static void ditherOrderedBand(const uint8_t* grayBand, uint8_t* bits,
+                              int y0, int h, DitherAlgo algo) {
+  if (!grayBand || !bits) return;
+  if (!clampBand(y0, h)) return;
+  clearBand(bits, y0, h);
   for (int yl = 0; yl < h; yl++) {
     int y = y0 + yl;
     for (int x = 0; x < SHANSHUI_W; x++) {
@@ -72,9 +78,8 @@ static void ditherOrdered(const uint8_t* gray, uint8_t* bits, DitherAlgo algo) {
   ditherOrderedBand(gray, bits, 0, SHANSHUI_H, algo);
 }
 
-// 行缓冲放 BSS（3*400 int16 = 2.4KB），不占栈。
-// s_e1/s_e2 为扩散误差状态：整幅 dither() 每次复位；分带时 ditherBegin()
-// 复位一次，带间保持 —— 带缝误差完整延续，与整幅逐位一致。
+// 行缓冲放 BSS。s_e1/s_e2 为扩散误差状态：整幅每次复位；分带时
+// ditherBegin() 复位一次后带间保持，误差完整延续。
 static int16_t s_row[SHANSHUI_W];
 static int16_t s_e1[SHANSHUI_W];
 static int16_t s_e2[SHANSHUI_W];
@@ -86,12 +91,8 @@ void ditherBegin() {
 static void ditherDiffuseBand(const uint8_t* grayBand, uint8_t* bits, int y0,
                               int h, bool atkinson) {
   if (!grayBand || !bits) return;
-  if (y0 < 0) { h += y0; y0 = 0; }
-  if (y0 + h > SHANSHUI_H) h = SHANSHUI_H - y0;
-  if (h <= 0) return;
-  size_t bpr = SHANSHUI_W / 8;
-  for (size_t i = (size_t)y0 * bpr; i < (size_t)(y0 + h) * bpr; i++)
-    bits[i] = 0;
+  if (!clampBand(y0, h)) return;
+  clearBand(bits, y0, h);
   for (int yl = 0; yl < h; yl++) {
     int y = y0 + yl;
     const uint8_t* grow = grayBand + (size_t)yl * SHANSHUI_W;

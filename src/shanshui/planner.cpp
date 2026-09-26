@@ -1,4 +1,5 @@
 #include "planner.h"
+#include "types.h"
 
 namespace shanshui {
 
@@ -13,19 +14,14 @@ float Planner::ns(float x, float y) {
   return v * 2;
 }
 
-float Planner::yr(float x) { return noise_.noise(x * 0.01f, 3.14159265f); }
+float Planner::yr(float x) { return noise_.noise(x * 0.01f, kPi); }
 
 bool Planner::locmax(float x, float y, float r) {
-  float z0 = noise_.noise(x * 0.03f) - 0.55f; // ns(x,y) 内联（y 未用）
-  if (z0 < 0) z0 = 0;
-  z0 *= 2;
+  float z0 = ns(x, y);
   if (z0 <= 0.3f) return false;
   for (float i = x - r; i < x + r; i++)
-    for (float j = y - r; j < y + r; j++) {
-      float v = noise_.noise(i * 0.03f) - 0.55f;
-      if (v < 0) v = 0;
-      if (v * 2 > z0) return false;
-    }
+    for (float j = y - r; j < y + r; j++)
+      if (ns(i, j) > z0) return false;
   return true;
 }
 

@@ -3,17 +3,15 @@
 
 namespace shanshui {
 
-static const float PI = 3.14159265f;
-
 static float clothW(Man::ClothMode m, float x, float sca) {
-  float s = sinf(x * PI);
+  float s = sinf(x * kPi);
   if (s < 0.0001f) s = 0.0001f;
   float k = powf(s, 0.1f);
   switch (m) {
     case Man::CM_SLEEVE:
-      return sca * 8.0f * (sinf(0.5f * x * PI) * k + (1 - x) * 0.4f);
+      return sca * 8.0f * (sinf(0.5f * x * kPi) * k + (1 - x) * 0.4f);
     case Man::CM_BODY:
-      return sca * 11.0f * (sinf(0.5f * x * PI) * k + (1 - x) * 0.5f);
+      return sca * 11.0f * (sinf(0.5f * x * kPi) * k + (1 - x) * 0.5f);
     case Man::CM_HEAD:
     default: {
       float v = 0.25f - (x - 0.5f) * (x - 0.5f);
@@ -32,7 +30,7 @@ int Man::expand(const Pt* pts, int n, ClothMode mode, float sca, Pt* o0,
     float a1 = atan2f(pts[i].y - pts[i - 1].y, pts[i].x - pts[i - 1].x);
     float a2 = atan2f(pts[i].y - pts[i + 1].y, pts[i].x - pts[i + 1].x);
     float a = (a1 + a2) * 0.5f;
-    if (a < a2) a += PI;
+    if (a < a2) a += kPi;
     if (c0 < maxOut) {
       o0[c0].x = pts[i].x + w * cosf(a);
       o0[c0].y = pts[i].y + w * sinf(a);
@@ -45,8 +43,8 @@ int Man::expand(const Pt* pts, int n, ClothMode mode, float sca, Pt* o0,
     }
   }
   int l = n - 1;
-  float a0 = atan2f(pts[1].y - pts[0].y, pts[1].x - pts[0].x) - PI / 2;
-  float a1 = atan2f(pts[l].y - pts[l - 1].y, pts[l].x - pts[l - 1].x) - PI / 2;
+  float a0 = atan2f(pts[1].y - pts[0].y, pts[1].x - pts[0].x) - kPi / 2;
+  float a1 = atan2f(pts[l].y - pts[l - 1].y, pts[l].x - pts[l - 1].x) - kPi / 2;
   float w0 = clothW(mode, 0, sca), w1 = clothW(mode, 1, sca);
   // 端帽（web 在首尾 unshift/push，与 brush.stroke 不同）。
   // 为保持缓冲顺序简单：端点直接拼接到输出头尾。
@@ -66,7 +64,7 @@ int Man::expand(const Pt* pts, int n, ClothMode mode, float sca, Pt* o0,
 
 void Man::tranpoly(const Pt& p0, const Pt& p1, const float* local, int n,
                    bool fli, Pt* out) {
-  float ang = atan2f(p1.y - p0.y, p1.x - p0.x) - PI / 2;
+  float ang = atan2f(p1.y - p0.y, p1.x - p0.x) - kPi / 2;
   float dx = p1.x - p0.x, dy = p1.y - p0.y;
   float scl = sqrtf(dx * dx + dy * dy);
   for (int i = 0; i < n; i++) {
@@ -84,7 +82,7 @@ void Man::hat01(const Pt& p0, const Pt& p1, bool fli) {
                             -0.3f, 1.15f, -0.55f, 1.0f, -0.65f, 0.5f};
   Pt pl[7];
   tranpoly(p0, p1, T, 7, fli, pl);
-  ras_.poly(pl, 7, ink(100, 204), none(), 0);
+  ras_.poly(pl, 7, gray100(204), none(), 0);
   float seed = rng_.next();
   Pt q[10];
   for (int i = 0; i < 10; i++) {
@@ -96,7 +94,7 @@ void Man::hat01(const Pt& p0, const Pt& p1, bool fli) {
   }
   // q 为局部坐标，做同样变换。
   Pt w[10];
-  float ang = atan2f(p1.y - p0.y, p1.x - p0.x) - PI / 2;
+  float ang = atan2f(p1.y - p0.y, p1.x - p0.x) - kPi / 2;
   float dx = p1.x - p0.x, dy = p1.y - p0.y;
   float scl = sqrtf(dx * dx + dy * dy);
   for (int i = 0; i < 10; i++) {
@@ -105,7 +103,7 @@ void Man::hat01(const Pt& p0, const Pt& p1, bool fli) {
     w[i].x = p0.x + d * scl * cosf(ang + a);
     w[i].y = p0.y + d * scl * sinf(ang + a);
   }
-  ras_.poly(w, 10, none(), ink(100, 204), 1.0f);
+  ras_.poly(w, 10, none(), gray100(204), 1.0f);
 }
 
 void Man::hat02(const Pt& p0, const Pt& p1, bool fli) {
@@ -114,20 +112,20 @@ void Man::hat02(const Pt& p0, const Pt& p1, bool fli) {
                             1.2f, 0.5f, 0.3f, 0.5f};
   Pt pl[10];
   tranpoly(p0, p1, T, 10, fli, pl);
-  ras_.poly(pl, 10, ink(100, 204), none(), 0);
+  ras_.poly(pl, 10, gray100(204), none(), 0);
 }
 
 void Man::stick01(const Pt& p0, const Pt& p1, bool fli) {
   float seed = rng_.next();
   Pt q[12];
   for (int i = 0; i < 12; i++) {
-    float x = -noise_.noise(i * 0.1f, seed) * 0.1f * sinf((float)i / 12 * PI) * 5.0f;
+    float x = -noise_.noise(i * 0.1f, seed) * 0.1f * sinf((float)i / 12 * kPi) * 5.0f;
     float y = i * 0.3f;
     if (fli) x = -x;
     q[i].x = x; q[i].y = y;
   }
   Pt w[12];
-  float ang = atan2f(p1.y - p0.y, p1.x - p0.x) - PI / 2;
+  float ang = atan2f(p1.y - p0.y, p1.x - p0.x) - kPi / 2;
   float dx = p1.x - p0.x, dy = p1.y - p0.y;
   float scl = sqrtf(dx * dx + dy * dy);
   for (int i = 0; i < 12; i++) {
@@ -136,7 +134,7 @@ void Man::stick01(const Pt& p0, const Pt& p1, bool fli) {
     w[i].x = p0.x + d * scl * cosf(ang + a);
     w[i].y = p0.y + d * scl * sinf(ang + a);
   }
-  ras_.poly(w, 12, none(), ink(100, 128), 1.0f);
+  ras_.poly(w, 12, none(), gray100(128), 1.0f);
 }
 
 void Man::cloth(const Pt* plist, int n, ClothMode mode, float sca, float xoff,
@@ -165,8 +163,8 @@ void Man::cloth(const Pt* plist, int n, ClothMode mode, float sca, float xoff,
     e1[i].x = t1[i].x * sx + xoff; e1[i].y = t1[i].y + yoff;
     e2[i].x = t2[i].x * sx + xoff; e2[i].y = t2[i].y + yoff;
   }
-  brush_.stroke(e1, c, ink(100, 128), 1.0f, 0.5f, 1.0f, wfSin);
-  brush_.stroke(e2, c, ink(100, 153), 1.0f, 0.5f, 1.0f, wfSin);
+  brush_.stroke(e1, c, gray100(128), 1.0f, 0.5f, 1.0f, wfSin);
+  brush_.stroke(e2, c, gray100(153), 1.0f, 0.5f, 1.0f, wfSin);
 }
 
 void Man::man(float xoff, float yoff, float sca, bool fli, int hat, int ite,
@@ -174,8 +172,8 @@ void Man::man(float xoff, float yoff, float sca, bool fli, int hat, int ite,
   static const float DEF_LEN[9] = {0, 30, 20, 30, 30, 30, 30, 30, 30};
   if (!lenMul) lenMul = DEF_LEN;
   float r1 = rng_.next(), r2 = rng_.next(), r3 = rng_.next();
-  float ang[9] = {0, -PI / 2, 0, (PI / 4) * r1, ((PI * 3) / 4) * r2,
-                  (PI * 3) / 4, -PI / 4, (-PI * 3) / 4 - (PI / 4) * r3, -PI / 4};
+  float ang[9] = {0, -kPi / 2, 0, (kPi / 4) * r1, ((kPi * 3) / 4) * r2,
+                  (kPi * 3) / 4, -kPi / 4, (-kPi * 3) / 4 - (kPi / 4) * r3, -kPi / 4};
   // 骨骼路径（root=0）：各关节 parent 链。
   // 显式路径求位置。
   static const uint8_t PATH[9][4] = {
@@ -223,7 +221,7 @@ void Man::man(float xoff, float yoff, float sca, bool fli, int hat, int ite,
     for (int i = c - 1; i >= d2 && pc < 90; i--) {
       poly[pc].x = h2[i].x * sx + xoff; poly[pc].y = h2[i].y + yoff; pc++;
     }
-    if (pc >= 3) ras_.poly(poly, pc, ink(100, 153), none(), 0);
+    if (pc >= 3) ras_.poly(poly, pc, gray100(153), none(), 0);
   }
   if (hat == 1)
     hat02(g[1], g[2], fli);

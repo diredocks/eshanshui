@@ -1,6 +1,6 @@
-// shanshui/planner.h — 场景布局（web/js/scene/planner.js 的 MCU 版）。
-// planmtx 改为带偏置的定长数组（支持负坐标），regs 写入调用方缓冲。
+// shanshui/planner.h — 场景布局（web/planner.js 的 MCU 版）。
 #pragma once
+
 #include "noise.h"
 
 namespace shanshui {

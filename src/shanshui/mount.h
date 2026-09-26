@@ -1,6 +1,6 @@
-// shanshui/mount.h — 山/石（web/js/entities/mount.js 的 MCU 版）。
-// distMount 的 triangulate() 化简为按段灰度平填＋轮廓皴笔（省递归与碎片）。
+// shanshui/mount.h — 山/石（web/mount.js 的 MCU 版）。
 #pragma once
+
 #include "arch.h"
 #include "tree.h"
 
@@ -35,8 +35,19 @@ class Mount {
   Tree& tree_;
   Arch& arch_;
   void foot(const Pt* grid, int I, int J, float xof, float yof);
+  bool flatShoreline(float xoff, float yoff, const Pt (*fseg)[2], int fsg,
+                     float& xmin, float& xmax, float& ymin, float& ymax);
   void flatDec(float xoff, float yoff, float xmin, float xmax, float ymin,
                float ymax);
+  void ridgeTrees(const Pt* grid, float xoff, float yoff, float seed, float hei);
+  void topTrees(const Pt* grid, float xoff, float yoff, float seed, float hei);
+  void midTrees(const Pt* grid, float xoff, float yoff, float seed, float hei);
+  void bottomTrees(const Pt* grid, float xoff, float yoff, float seed,
+                   float hei);
+  void bottomArch(const Pt* grid, float xoff, float yoff, float seed);
+  void topArch(const Pt* grid, float xoff, float yoff, float seed);
+  void transm(const Pt* grid, float xoff, float yoff, float seed);
+  void bottomRocks(const Pt* grid, float xoff, float yoff);
 };
 
 } // namespace shanshui

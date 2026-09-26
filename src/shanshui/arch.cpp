@@ -1,9 +1,9 @@
 #include "arch.h"
 #include <math.h>
+#include <cstdio>
 
 namespace shanshui {
-
-static const float PI = 3.14159265f;
+static void _ident(const char* fn){static int _n=0; if(_n<200){fprintf(stderr,"CALL %d %s\n",_n++,fn);}}
 
 void Arch::hut(float xoff, float yoff, float hei, float wid, int tex) {
   const int RI = 10, RJ = 10;
@@ -21,8 +21,8 @@ void Arch::hut(float xoff, float yoff, float hei, float wid, int tex) {
   for (int j = 0; j < RJ - 1; j++) edge[ec++] = grid[j];
   for (int j = RJ - 1; j >= 0 && ec < 20; j--) edge[ec++] = grid[(RI - 1) * RJ + j];
   ras_.poly(edge, ec, paper(), none(), 0, xoff, yoff);
-  ras_.poly(grid, RJ, none(), ink(100, 77), 2.0f, xoff, yoff);
-  ras_.poly(grid + (RI - 1) * RJ, RJ, none(), ink(100, 77), 2.0f, xoff, yoff);
+  ras_.poly(grid, RJ, none(), gray100(77), 2.0f, xoff, yoff);
+  ras_.poly(grid + (RI - 1) * RJ, RJ, none(), gray100(77), 2.0f, xoff, yoff);
   TexArgs t;
   t.tex = tex;
   t.wid = 1.0f;
@@ -38,19 +38,16 @@ void Arch::hut(float xoff, float yoff, float hei, float wid, int tex) {
 int Arch::deco(int style, const Pt& pul, const Pt& pur, const Pt& pdl,
                const Pt& pdr, Pt lines[][8]) {
   if (style < 1 || style > 3) return 0;
-  int h0 = 1, h1 = 3, v0 = 1, v1 = 2;
-  if (style == 1) { h0 = 1; h1 = 5; v0 = 1; v1 = 2; }
-  if (style == 2) { h0 = 1; h1 = 5; v0 = 1; v1 = 2; }
-  if (style == 3) { h0 = 1; h1 = 4; v0 = 1; v1 = 3; }
+  const int h0 = 1, v0 = 1, v1 = (style == 3) ? 3 : 2;
+  const int h1 = (style == 3) ? 4 : 5;
   Pt dl[8], dr[8], du[8], dd[8];
   Pt e1[2] = {pul, pdl}, e2[2] = {pur, pdr}, e3[2] = {pul, pur},
      e4[2] = {pdl, pdr};
   int nl = brush_.div(e1, 2, v1, dl, 8);
-  int nr = brush_.div(e2, 2, v1, dr, 8);
+  brush_.div(e2, 2, v1, dr, 8);
   int nu = brush_.div(e3, 2, h1, du, 8);
-  int nd = brush_.div(e4, 2, h1, dd, 8);
+  brush_.div(e4, 2, h1, dd, 8);
   int c = 0;
-  Pt tmp[8];
   if (style == 1) {
     Pt mlu = du[h0], mru = du[nu - 1 - h0], mld = dd[h0], mrd = dd[nu - 1 - h0];
     for (int i = v0; i < nl - v0 && c + 2 < 16; i += v0) {
@@ -90,7 +87,6 @@ int Arch::deco(int style, const Pt& pul, const Pt& pur, const Pt& pdl,
     if (c < 16) { brush_.div(q1, 2, 5, lines[c], 8); c++; }
     if (c < 16) { brush_.div(q2, 2, 5, lines[c], 8); c++; }
   }
-  (void)tmp; (void)nd; (void)nr;
   return c;
 }
 
@@ -135,11 +131,8 @@ void Arch::box(float xoff, float yoff, float hei, float wid, float rot,
   }
   for (int i = 0; i < sc; i++) {
     Pt w[8];
-    for (int k = 0; k < 6; k++) {
-      w[k].x = store[i][k].x + xoff;
-      w[k].y = store[i][k].y + yoff;
-    }
-    brush_.stroke(w, 6, ink(100, 102), wei, 1.0f, 1.0f, wfOne);
+    copyOffset(w, store[i], 6, xoff, yoff);
+    brush_.stroke(w, 6, gray100(102), wei, 1.0f, 1.0f, wfOne);
   }
 }
 
@@ -184,7 +177,7 @@ void Arch::rail(float xoff, float yoff, float seed, float hei, float wid,
       Pt ln[2] = {{pl[i][j].x + (rng_.next() - 0.5f) * hei * 0.5f + xoff,
                    pl[i][j].y + yoff},
                   {pl[oi][oj].x + xoff, pl[oi][oj].y + yoff}};
-      ras_.poly(ln, 2, none(), ink(100, 128), 2.0f);
+      ras_.poly(ln, 2, none(), gray100(128), 2.0f);
     }
   }
   for (int i = 0; i < pc; i++) {
@@ -193,7 +186,7 @@ void Arch::rail(float xoff, float yoff, float seed, float hei, float wid,
       w[k].x = pl[i][k].x + xoff;
       w[k].y = pl[i][k].y + yoff;
     }
-    brush_.stroke(w, seg + 1, ink(100, 128), wei, 0.5f, 1.0f, wfOne);
+    brush_.stroke(w, seg + 1, gray100(128), wei, 0.5f, 1.0f, wfOne);
   }
 }
 
@@ -234,8 +227,8 @@ void Arch::roof(float xoff, float yoff, float hei, float wid, float rot,
   for (int i = 0; i < sc; i++) {
     Pt w[12];
     int n = brush_.div(store[i], 6, 1, w, 12);
-    for (int k = 0; k < n; k++) { w[k].x += xoff; w[k].y += yoff; }
-    brush_.stroke(w, n, ink(100, 102), wei, 1.0f, 1.0f, wfOne);
+    translate(w, n, xoff, yoff);
+    brush_.stroke(w, n, gray100(102), wei, 1.0f, 1.0f, wfOne);
   }
 }
 
@@ -253,6 +246,7 @@ void Arch::pagroof(float xoff, float yoff, float hei, float wid, float per,
     if (i > 0 && lc < 14) {
       lines[lc][0] = lines[lc - 1][2];
       lines[lc][1] = {fxx, fy};
+      lines[lc][2] = {fxx, fy};
       lc++;
     }
     if (lc < 14) {
@@ -267,8 +261,8 @@ void Arch::pagroof(float xoff, float yoff, float hei, float wid, float per,
   for (int i = 0; i < lc; i++) {
     Pt dv[12];
     int n = brush_.div(lines[i], 3, 5, dv, 12);
-    for (int k = 0; k < n; k++) { dv[k].x += xoff; dv[k].y += yoff; }
-    brush_.stroke(dv, n, ink(100, 102), wei, 1.0f, 1.0f, wfOne);
+    translate(dv, n, xoff, yoff);
+    brush_.stroke(dv, n, gray100(102), wei, 1.0f, 1.0f, wfOne);
   }
 }
 
@@ -352,7 +346,7 @@ void Arch::boat01(float xoff, float yoff, float seed, float len, float sca,
   int c1 = 0, c2 = 0;
   for (float i = 0; i < len * sca && c1 < 32; i += 5 * sca) {
     float f = i / len;
-    float s = sinf(f * PI);
+    float s = sinf(f * kPi);
     if (s <= 0) s = 0.0001f;
     float sq = sqrtf(s);
     p1[c1].x = i * dir + xoff;
@@ -367,14 +361,14 @@ void Arch::boat01(float xoff, float yoff, float seed, float len, float sca,
   for (int i = 0; i < c1 && hc < 63; i++) hull[hc++] = p1[i];
   for (int i = c2 - 1; i >= 0 && hc < 63; i--) hull[hc++] = p2[i];
   ras_.poly(hull, hc, paper(), none(), 0);
-  brush_.stroke(hull, hc, ink(100, 102), 1.0f, 0.5f, 1.0f, wfSin);
+  brush_.stroke(hull, hc, gray100(102), 1.0f, 0.5f, 1.0f, wfSin);
 }
 
 void Arch::quickstroke(const Pt* pl, int n, float xoff, float yoff) {
   Pt dv[24];
   int dc = brush_.div(pl, n, 5, dv, 24);
-  for (int i = 0; i < dc; i++) { dv[i].x += xoff; dv[i].y += yoff; }
-  brush_.stroke(dv, dc, ink(100, 102), 1.0f, 0.5f, 0.5f, wfOne);
+  translate(dv, dc, xoff, yoff);
+  brush_.stroke(dv, dc, gray100(102), 1.0f, 0.5f, 0.5f, wfOne);
 }
 
 void Arch::tower01(float xoff, float yoff, float hei, float wid) {

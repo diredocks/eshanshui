@@ -1,6 +1,6 @@
-// shanshui/noise.h — Perlin 值噪声（web/js/core/noise.js 的 MCU 版）。
-// 原表 4096 floats（16KB），这里 256 bytes；插值与 octave 逻辑保持一致。
+// shanshui/noise.h — Perlin 值噪声（web/noise.js 的 MCU 版）。
 #pragma once
+
 #include "config.h"
 #include "prng.h"
 
@@ -9,7 +9,6 @@ namespace shanshui {
 class Noise {
  public:
   explicit Noise(Prng& rng) : rng_(rng), ready_(false) {}
-  void reset() { ready_ = false; } // 换种子后重建随机表。
   float noise(float x, float y = 0.0f, float z = 0.0f);
   void setDetail(int octaves, float falloff) {
     if (octaves > 0) octaves_ = octaves;

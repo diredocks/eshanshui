@@ -1,9 +1,6 @@
-// shanshui/tree.h — 树（web/js/entities/tree.js 的 MCU 版）。
-// 保留 8 种树形与皴法风格；为省 RAM/flash 做三处化简：
-//  1) tree07/分形 shading 的 triangulate() 去掉，改用噪声灰度直接填；
-//  2) 递归（twig/fracTree）限深， protective caps；
-//  3) 颜色用 Ink（灰度+alpha）代替 rgba 字符串解析。
+// shanshui/tree.h — 树（web/tree.js 的 MCU 版）。
 #pragma once
+
 #include "brush.h"
 
 namespace shanshui {
@@ -32,6 +29,11 @@ class Tree {
   // 树干：返回每侧点数，o0/o1 各 n 点。
   int branch(float hei, float wid, float ang, float ben, float det, Pt* o0,
              Pt* o1, int maxOut);
+  int trunkOutline(const Pt* s0, const Pt* s1, int n, float x, float y,
+                   Pt* tr);
+  int branchOutline(const Pt* b0, const Pt* b1, int bn, float ox, float oy,
+                    Pt* bp);
+  void edgeStroke(const Pt* tr, int begin, int end, uint8_t base);
   void twig(float tx, float ty, int dep, int dir, float sca, float wid,
             float ang, bool lea, float leaSz);
   void barkify(float x, float y, const Pt* s0, const Pt* s1, int n);

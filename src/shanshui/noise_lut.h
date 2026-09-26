@@ -1,7 +1,7 @@
 // shanshui/noise_lut.h — 预计算淡入曲线 LUT（生成，勿手改）。
-// scaledCosine(t)=0.5*(1-cos(pi*t))，t in [0,1]，257 项 + 线性插值，
-// 误差 <1e-5，逐点省掉热路径里的 cosf。
+// 0.5*(1-cos(pi*t))，t in [0,1]，257 项 + 线性插值。
 #pragma once
+
 #include "config.h"
 
 static const float COS_LUT[257] PROGMEM = {
