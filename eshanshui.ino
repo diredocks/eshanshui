@@ -11,23 +11,23 @@ constexpr uint32_t kSeedFallback = 0x9E3779B9u;
 uint8_t s_bits[SHANSHUI_BITS_SIZE];
 uint8_t s_grayBand[SHANSHUI_BAND_SIZE];
 uint32_t s_seed;
-volatile bool s_genDone = false;
+static SemaphoreHandle_t s_genDoneSem = nullptr;
 
 void generateScene(void*) {
   shanshui::generateBanded(s_seed, s_grayBand, SHANSHUI_BAND_H, s_bits,
                            shanshui::DITHER_FLOYD);
-  s_genDone = true;
+  xSemaphoreGive(s_genDoneSem);
   vTaskDelete(nullptr);
 }
 
 void renderBitmap() {
-  s_genDone = false;
-  uint32_t t0 = millis();
-  xTaskCreate(generateScene, "shanshui_gen", kGenTaskStack, nullptr, 1, nullptr);
-
-  while (!s_genDone) {
-    delay(10);
+  if (!s_genDoneSem) {
+      s_genDoneSem = xSemaphoreCreateBinary();
   }
+  uint32_t t0 = millis();
+
+  xTaskCreate(generateScene, "shanshui_gen", kGenTaskStack, nullptr, 1, nullptr);
+  xSemaphoreTake(s_genDoneSem, portMAX_DELAY);
 
   Serial.printf("render done: seed=%u algo=floyd %lums\n", s_seed,
                 (unsigned long)(millis() - t0));
